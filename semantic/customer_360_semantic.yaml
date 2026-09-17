@@ -302,10 +302,12 @@ tables:
         expr: SENTIMENT_LABEL
         data_type: VARCHAR
         description: Sentiment category (Positive, Neutral, Negative).
-      - name: CALL_SUMMARY
-        expr: CALL_SUMMARY
-        data_type: VARCHAR
-        description: AI-generated summary of the call.
+
+    time_dimensions:
+      - name: CALL_DATE
+        expr: CALL_DATE
+        data_type: TIMESTAMP
+        description: Date and time of the call.
 
     measures:
       - name: SENTIMENT_SCORE
@@ -420,3 +422,37 @@ verified_queries:
       WHERE CHURN_RISK_SCORE IS NOT NULL
       GROUP BY risk_bucket
       ORDER BY risk_bucket
+
+  - name: open_claims_high_churn
+    question: Which customers have open claims and high churn risk?
+    sql: >
+      SELECT cr.FULL_NAME, cr.CUSTOMER_SEGMENT,
+             ROUND(cr.CHURN_RISK_SCORE, 3) AS churn_risk_score,
+             u.OPEN_CLAIMS
+      FROM CUSTOMER_360.AI.DT_CHURN_RISK cr
+      JOIN CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED u ON cr.CUSTOMER_ID = u.CUSTOMER_ID
+      WHERE u.OPEN_CLAIMS > 0
+        AND cr.CHURN_RISK_SCORE >= 0.6
+      ORDER BY cr.CHURN_RISK_SCORE DESC
+
+  - name: avg_premium_by_country
+    question: What is the average total premium by country?
+    sql: >
+      SELECT COUNTRY,
+             ROUND(AVG(TOTAL_PREMIUM), 2) AS avg_premium,
+             COUNT(*) AS customer_count
+      FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED
+      WHERE TOTAL_PREMIUM > 0
+      GROUP BY COUNTRY
+      ORDER BY avg_premium DESC
+
+  - name: delinquent_loans_by_segment
+    question: How many customers have loans more than 90 days past due by segment?
+    sql: >
+      SELECT CUSTOMER_SEGMENT,
+             COUNT(*) AS customer_count,
+             ROUND(AVG(MAX_DAYS_PAST_DUE), 0) AS avg_days_past_due
+      FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED
+      WHERE MAX_DAYS_PAST_DUE >= 90
+      GROUP BY CUSTOMER_SEGMENT
+      ORDER BY customer_count DESC

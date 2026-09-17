@@ -22,8 +22,8 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 # --- Connection config (loaded from .env) ---
 CONN_PARAMS = {
-    "account": os.getenv("SNOWFLAKE_ACCOUNT", "sdhndje-sq84485"),
-    "user": os.getenv("SNOWFLAKE_USER", "VISHNUPAVAN"),
+    "account": os.getenv("SNOWFLAKE_ACCOUNT", ""),
+    "user": os.getenv("SNOWFLAKE_USER", ""),
     "role": os.getenv("SNOWFLAKE_ROLE", "ACCOUNTADMIN"),
     "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH"),
 }
@@ -180,6 +180,14 @@ def run_file(cursor, filepath: str) -> tuple[int, int]:
 
 
 def main():
+    # Validate required connection params are set
+    if not CONN_PARAMS.get("account"):
+        print("ERROR: SNOWFLAKE_ACCOUNT is not set. Add it to your .env file.")
+        sys.exit(1)
+    if not CONN_PARAMS.get("user"):
+        print("ERROR: SNOWFLAKE_USER is not set. Add it to your .env file.")
+        sys.exit(1)
+
     # Resolve password: env var, then interactive prompt
     password = os.getenv("SNOWFLAKE_PASSWORD", "")
     if not password:

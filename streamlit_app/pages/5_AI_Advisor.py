@@ -6,12 +6,17 @@ st.set_page_config(page_title="AI Advisor", page_icon="🤖", layout="wide")
 st.title("Customer 360 AI Advisor")
 st.caption("Ask natural-language questions about customers, churn risk, sentiment, and next best actions")
 
-session = get_active_session()
+try:
+    session = get_active_session()
+except Exception as e:
+    st.error(f"Could not connect to Snowflake: {e}")
+    st.stop()
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "dataframes" not in st.session_state:
+    st.session_state.dataframes = {}  # message_index -> dataframe
 
-# Example prompts sidebar
 with st.sidebar:
     st.header("Example Questions")
     examples = [
@@ -31,50 +36,50 @@ with st.sidebar:
     st.divider()
     if st.button("Clear Chat", use_container_width=True):
         st.session_state.messages = []
+        st.session_state.dataframes = {}
         st.rerun()
 
+MAX_QUESTION_LENGTH = 500
 
-def call_cortex_analyst(question: str) -> str:
-    """Query Cortex using a plain string prompt."""
+
+def call_cortex_llm(question: str):
+    """Call CORTEX.COMPLETE. Returns (text_response, None, is_live_data=False)."""
+    sanitized = "".join(c for c in question if c.isalnum() or c in " .,?-_'")[:MAX_QUESTION_LENGTH]
     try:
-        safe_q = question.replace("'", "''")
-        result = session.sql(f"""
-            SELECT SNOWFLAKE.CORTEX.COMPLETE(
-                'llama3.1-8b',
-                'You are a Customer 360 AI Advisor for an insurance and lending company. ' ||
-                'Answer questions about customer data. Customer segments: Basic, Standard, Premium, VIP. ' ||
-                'Policy types: Auto, Home, Life, Health. Loan types: Mortgage, Auto, Personal, Business. ' ||
-                'Churn risk scores range 0-1. Be specific and actionable. ' ||
-                'Question: {safe_q}'
-            ) AS RESPONSE
-        """).collect()
-        return result[0]["RESPONSE"] if result else "No response received."
+        safe_q = sanitized.replace("'", "''")
+        result = session.sql(
+            "SELECT SNOWFLAKE.CORTEX.COMPLETE('llama3.1-8b',"
+            " 'You are a Customer 360 AI Advisor for insurance and lending. "
+            "Answer questions about: segments (Basic/Standard/Premium/VIP), "
+            "policies (Auto/Home/Life/Health), loans (Mortgage/Auto/Personal/Business), "
+            "churn risk (0-1 score). Be specific. Question: " + safe_q + "') AS RESPONSE"
+        ).collect()
+        return (result[0]["RESPONSE"] if result else "No response received.", None, False)
     except Exception as e:
-        return f"Error: {str(e)}"
+        return (f"Unable to answer: {str(e)}", None, False)
 
 
-def answer_with_data(question: str) -> str:
-    """Try to answer data questions directly with SQL when possible."""
-    q_lower = question.lower()
+def answer_with_data(question: str):
+    """Route to SQL queries or fall back to LLM. Returns (text, dataframe_or_None, is_live_data)."""
+    q = question.lower()
 
-    try:
-        # Top churn risk customers
-        if "top" in q_lower and "churn" in q_lower:
+    if "top" in q and "churn" in q:
+        try:
             df = session.sql("""
                 SELECT cr.FULL_NAME, cr.CUSTOMER_SEGMENT,
                        ROUND(cr.CHURN_RISK_SCORE, 3) AS CHURN_RISK,
-                       cr.RETENTION_URGENCY,
-                       nba.ACTION_TYPE, nba.PRIORITY
+                       cr.RETENTION_URGENCY, nba.ACTION_TYPE, nba.PRIORITY
                 FROM CUSTOMER_360.AI.DT_CHURN_RISK cr
-                LEFT JOIN CUSTOMER_360.AI.DT_NEXT_BEST_ACTION nba
-                    ON cr.CUSTOMER_ID = nba.CUSTOMER_ID
+                LEFT JOIN CUSTOMER_360.AI.DT_NEXT_BEST_ACTION nba ON cr.CUSTOMER_ID = nba.CUSTOMER_ID
                 WHERE cr.CHURN_RISK_SCORE IS NOT NULL
                 ORDER BY cr.CHURN_RISK_SCORE DESC LIMIT 10
             """).to_pandas()
-            return f"**Top 10 customers by churn risk:**\n\n{df.to_markdown(index=False)}"
+            return ("Top 10 customers by churn risk:", df, True)
+        except Exception as e:
+            return (f"Error: {e}", None, False)
 
-        # Sentiment by segment
-        if "sentiment" in q_lower and "segment" in q_lower:
+    if "sentiment" in q and "segment" in q:
+        try:
             df = session.sql("""
                 SELECT c.CUSTOMER_SEGMENT,
                        ROUND(AVG(s.SENTIMENT_SCORE), 3) AS AVG_SENTIMENT,
@@ -83,10 +88,12 @@ def answer_with_data(question: str) -> str:
                 JOIN CUSTOMER_360.AI.DT_TRANSCRIPT_SENTIMENT s ON c.CUSTOMER_ID = s.CUSTOMER_ID
                 GROUP BY c.CUSTOMER_SEGMENT ORDER BY AVG_SENTIMENT
             """).to_pandas()
-            return f"**Average sentiment by segment:**\n\n{df.to_markdown(index=False)}"
+            return ("Average sentiment by segment:", df, True)
+        except Exception as e:
+            return (f"Error: {e}", None, False)
 
-        # Churn distribution
-        if "distribution" in q_lower and "churn" in q_lower:
+    if "distribution" in q and "churn" in q:
+        try:
             df = session.sql("""
                 SELECT
                     CASE WHEN CHURN_RISK_SCORE >= 0.8 THEN 'Critical (0.8-1.0)'
@@ -94,56 +101,76 @@ def answer_with_data(question: str) -> str:
                          WHEN CHURN_RISK_SCORE >= 0.4 THEN 'Medium (0.4-0.6)'
                          WHEN CHURN_RISK_SCORE >= 0.2 THEN 'Low (0.2-0.4)'
                          ELSE 'Minimal (0-0.2)'
-                    END AS RISK_BUCKET,
-                    COUNT(*) AS CUSTOMERS
+                    END AS RISK_BUCKET, COUNT(*) AS CUSTOMERS
                 FROM CUSTOMER_360.AI.DT_CHURN_RISK
                 WHERE CHURN_RISK_SCORE IS NOT NULL
                 GROUP BY 1 ORDER BY 1
             """).to_pandas()
-            return f"**Churn risk distribution:**\n\n{df.to_markdown(index=False)}"
+            return ("Churn risk distribution:", df, True)
+        except Exception as e:
+            return (f"Error: {e}", None, False)
 
-        # High risk Premium count
-        if "premium" in q_lower and ("high" in q_lower or "risk" in q_lower):
+    if "premium" in q and ("high" in q or "risk" in q):
+        try:
             df = session.sql("""
                 SELECT COUNT(*) AS HIGH_RISK_PREMIUM
                 FROM CUSTOMER_360.AI.DT_CHURN_RISK
                 WHERE CHURN_RISK_SCORE >= 0.7 AND CUSTOMER_SEGMENT = 'Premium'
             """).to_pandas()
             count = df["HIGH_RISK_PREMIUM"].iloc[0]
-            return f"There are **{count}** high-risk churn customers (score ≥ 0.7) in the Premium segment."
+            return (f"There are **{count}** high-risk churn customers (score >= 0.7) in the Premium segment.", None, True)
+        except Exception as e:
+            return (f"Error: {e}", None, False)
 
-        # NBA for negative sentiment
-        if "action" in q_lower and ("negative" in q_lower or "sentiment" in q_lower):
+    if "action" in q and ("negative" in q or "sentiment" in q):
+        try:
             df = session.sql("""
                 SELECT nba.ACTION_TYPE, COUNT(*) AS ACTION_COUNT
                 FROM CUSTOMER_360.AI.DT_NEXT_BEST_ACTION nba
-                WHERE nba.LATEST_SENTIMENT_LABEL = 'Negative'
-                  AND nba.ACTION_TYPE IS NOT NULL
+                WHERE nba.LATEST_SENTIMENT_LABEL = 'Negative' AND nba.ACTION_TYPE IS NOT NULL
                 GROUP BY nba.ACTION_TYPE ORDER BY ACTION_COUNT DESC
             """).to_pandas()
-            return f"**Most common actions for customers with negative sentiment:**\n\n{df.to_markdown(index=False)}"
+            return ("Most common actions for customers with negative sentiment:", df, True)
+        except Exception as e:
+            return (f"Error: {e}", None, False)
 
-        # Complaints
-        if "complaint" in q_lower:
+    if "complaint" in q:
+        try:
             df = session.sql("""
                 SELECT COUNT(*) AS CUSTOMERS
                 FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED
                 WHERE COMPLAINT_COUNT > 2
             """).to_pandas()
             count = df["CUSTOMERS"].iloc[0]
-            return f"**{count}** customers have more than 2 complaints."
+            return (f"**{count}** customers have more than 2 complaints.", None, True)
+        except Exception as e:
+            return (f"Error: {e}", None, False)
 
-    except Exception:
-        pass
+    if "claim" in q and ("churn" in q or "risk" in q):
+        try:
+            df = session.sql("""
+                SELECT cr.FULL_NAME, cr.CUSTOMER_SEGMENT,
+                       ROUND(cr.CHURN_RISK_SCORE, 3) AS CHURN_RISK, u.OPEN_CLAIMS
+                FROM CUSTOMER_360.AI.DT_CHURN_RISK cr
+                JOIN CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED u ON cr.CUSTOMER_ID = u.CUSTOMER_ID
+                WHERE u.OPEN_CLAIMS > 0 AND cr.CHURN_RISK_SCORE >= 0.6
+                ORDER BY cr.CHURN_RISK_SCORE DESC LIMIT 15
+            """).to_pandas()
+            return ("Customers with open claims and high churn risk:", df, True)
+        except Exception as e:
+            return (f"Error: {e}", None, False)
 
-    # Fall back to LLM
-    return call_cortex_analyst(question)
+    return call_cortex_llm(question)
 
 
 # Display chat history
-for msg in st.session_state.messages:
+for i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+        if i in st.session_state.dataframes:
+            st.dataframe(st.session_state.dataframes[i], use_container_width=True, hide_index=True)
+        if msg.get("is_llm_fallback"):
+            st.caption("Note: This answer is from the AI model, not live Snowflake data. Verify with the dashboards.")
 
 # Chat input
 if prompt := st.chat_input("Ask about your customers..."):
@@ -151,10 +178,22 @@ if prompt := st.chat_input("Ask about your customers..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-# Generate response for the latest user message
+# Generate response for latest user message
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     with st.chat_message("assistant"):
         with st.spinner("Analyzing..."):
-            response = answer_with_data(st.session_state.messages[-1]["content"])
-            st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            text, df, is_live = answer_with_data(st.session_state.messages[-1]["content"])
+            st.markdown(text)
+            if df is not None:
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            if not is_live:
+                st.caption("Note: This answer is from the AI model, not live Snowflake data. Verify with the dashboards.")
+
+            msg_idx = len(st.session_state.messages)
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": text,
+                "is_llm_fallback": not is_live
+            })
+            if df is not None:
+                st.session_state.dataframes[msg_idx] = df

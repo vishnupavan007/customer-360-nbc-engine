@@ -11,29 +11,34 @@ password = os.getenv("SNOWFLAKE_PASSWORD")
 role = os.getenv("SNOWFLAKE_ROLE")
 warehouse = os.getenv("SNOWFLAKE_WAREHOUSE")
 
-# Add the connection to snow CLI config
+if not all([account, user, password]):
+    raise ValueError("Missing required env vars: SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD")
+
+# Build env with password as environment variable (not CLI arg -- avoids process list exposure)
+env = os.environ.copy()
+env["SNOWFLAKE_PASSWORD"] = password
+
+# Configure snow CLI connection using env var for password
 print("Configuring snow CLI connection...")
 add_cmd = [
     "snow", "connection", "add",
     "--connection-name", "default",
     "--account", account,
     "--user", user,
-    "--password", password,
     "--role", role,
     "--warehouse", warehouse,
     "--database", "CUSTOMER_360",
     "--schema", "APP",
     "--no-interactive",
 ]
-result = subprocess.run(add_cmd, capture_output=True, text=True)
+result = subprocess.run(add_cmd, capture_output=True, text=True, env=env)
 if result.returncode == 0:
     print("Connection configured.")
 else:
-    # Might already exist
     print(f"Note: {result.stderr.strip() or result.stdout.strip()}")
 
 # Set as default
-subprocess.run(["snow", "connection", "set-default", "default"], capture_output=True, text=True)
+subprocess.run(["snow", "connection", "set-default", "default"], capture_output=True, text=True, env=env)
 
 # Deploy the Streamlit app
 print("\nDeploying Streamlit app...")
@@ -43,6 +48,7 @@ deploy_result = subprocess.run(
     cwd=os.path.join(os.path.dirname(os.path.abspath(__file__)), "streamlit_app"),
     capture_output=True,
     text=True,
+    env=env,
 )
 print(deploy_result.stdout)
 if deploy_result.stderr:
