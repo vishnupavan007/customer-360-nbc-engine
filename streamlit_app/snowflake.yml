@@ -18,3 +18,4 @@ entities:
       - pages/3_Sentiment.py
       - pages/4_Next_Best_Action.py
       - pages/5_AI_Advisor.py
+      - pyproject.toml

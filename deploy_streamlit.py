@@ -37,7 +37,7 @@ subprocess.run(["snow", "connection", "set-default", "default"], capture_output=
 
 # Deploy the Streamlit app
 print("\nDeploying Streamlit app...")
-deploy_cmd = ["snow", "streamlit", "deploy"]
+deploy_cmd = ["snow", "streamlit", "deploy", "--replace"]
 deploy_result = subprocess.run(
     deploy_cmd,
     cwd=os.path.join(os.path.dirname(os.path.abspath(__file__)), "streamlit_app"),
