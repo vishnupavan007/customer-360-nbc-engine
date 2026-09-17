@@ -137,12 +137,20 @@ def answer_with_data(question: str):
     if "complaint" in q:
         try:
             df = session.sql("""
-                SELECT COUNT(*) AS CUSTOMERS
-                FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED
-                WHERE COMPLAINT_COUNT > 2
+                SELECT c.FULL_NAME, c.CUSTOMER_SEGMENT,
+                       c.COMPLAINT_COUNT, c.ESCALATION_COUNT,
+                       ROUND(cr.CHURN_RISK_SCORE, 3) AS CHURN_RISK,
+                       cr.RETENTION_URGENCY,
+                       nba.ACTION_TYPE, nba.PRIORITY,
+                       nba.ACTION_DESCRIPTION
+                FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED c
+                LEFT JOIN CUSTOMER_360.AI.DT_CHURN_RISK cr ON c.CUSTOMER_ID = cr.CUSTOMER_ID
+                LEFT JOIN CUSTOMER_360.AI.DT_NEXT_BEST_ACTION nba ON c.CUSTOMER_ID = nba.CUSTOMER_ID
+                WHERE c.COMPLAINT_COUNT > 2
+                ORDER BY c.COMPLAINT_COUNT DESC, cr.CHURN_RISK_SCORE DESC
             """).to_pandas()
-            count = df["CUSTOMERS"].iloc[0]
-            return (f"**{count}** customers have more than 2 complaints.", None, True)
+            count = len(df)
+            return (f"**{count}** customers have more than 2 complaints. Here are their details and recommended actions:", df, True)
         except Exception as e:
             return (f"Error: {e}", None, False)
 
