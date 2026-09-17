@@ -6,7 +6,7 @@ Usage:
     pip install snowflake-connector-python python-dotenv
     python run_pipeline.py
 
-Reads connection config from .env file in the same directory.
+Reads connection config from .env file in the project root (parent of scripts/).
 """
 
 import getpass
@@ -17,8 +17,9 @@ import time
 from dotenv import load_dotenv
 import snowflake.connector
 
-# Load .env file from the same directory as this script
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+# Load .env from project root (parent of scripts/)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 # --- Connection config (loaded from .env) ---
 CONN_PARAMS = {
@@ -28,20 +29,19 @@ CONN_PARAMS = {
     "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH"),
 }
 
-# --- SQL files in execution order ---
-SQL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sql")
-
+# --- SQL files in execution order (relative to project root) ---
+# Each entry is (relative_path_from_root, description)
 SQL_FILES = [
-    "00_setup.sql",
-    "01_raw_tables.sql",
-    "02_synthetic_data.sql",
-    "03_clean_dynamic_tables.sql",
-    "04_curated_dynamic_tables.sql",
-    "05_ai_enrichment.sql",
-    "06_semantic_model.sql",
-    "07_cortex_agent.sql",
-    "08_tasks_and_monitoring.sql",
-    "09_validation.sql",
+    ("infrastructure/00_setup.sql",                    "Infrastructure: schemas and warehouse"),
+    ("pipeline/schema/01_raw_tables.sql",               "Pipeline: raw table DDL"),
+    ("pipeline/data/02_synthetic_data.sql",             "Pipeline: synthetic data generation"),
+    ("pipeline/clean/03_clean_dynamic_tables.sql",      "Pipeline: CLEAN dynamic tables"),
+    ("pipeline/curated/04_curated_dynamic_tables.sql",  "Pipeline: CURATED unified view"),
+    ("pipeline/ai/05_ai_enrichment.sql",                "Pipeline: AI enrichment + Cortex Search"),
+    ("serving/semantic_model/06_semantic_model.sql",    "Serving: semantic view creation"),
+    ("serving/agent/07_cortex_agent.sql",               "Serving: Cortex Agent documentation"),
+    ("ops/08_tasks_and_monitoring.sql",                 "Ops: scheduled quality monitoring tasks"),
+    ("ops/09_validation.sql",                           "Ops: end-to-end validation queries"),
 ]
 
 
@@ -198,8 +198,8 @@ def main():
     CONN_PARAMS["password"] = password
 
     # Verify SQL directory exists
-    if not os.path.isdir(SQL_DIR):
-        print(f"ERROR: SQL directory not found: {SQL_DIR}")
+    if not os.path.isdir(PROJECT_ROOT):
+        print(f"ERROR: Project root not found: {PROJECT_ROOT}")
         sys.exit(1)
 
     print("=" * 70)
@@ -208,7 +208,7 @@ def main():
     print(f"User:      {CONN_PARAMS['user']}")
     print(f"Role:      {CONN_PARAMS['role']}")
     print(f"Warehouse: {CONN_PARAMS['warehouse']}")
-    print(f"SQL Dir:   {SQL_DIR}")
+    print(f"Root:      {PROJECT_ROOT}")
     print("=" * 70)
 
     conn = snowflake.connector.connect(**CONN_PARAMS)
@@ -218,16 +218,18 @@ def main():
     total_errors = 0
     file_results = []
 
-    for sql_file in SQL_FILES:
-        filepath = os.path.join(SQL_DIR, sql_file)
+    for rel_path, description in SQL_FILES:
+        filepath = os.path.join(PROJECT_ROOT, rel_path)
+        sql_file = os.path.basename(rel_path)
 
         if not os.path.exists(filepath):
-            print(f"\n  SKIP: {sql_file} (file not found)")
-            file_results.append((sql_file, 0, 0, "SKIPPED"))
+            print(f"\n  SKIP: {rel_path} (file not found)")
+            file_results.append((rel_path, 0, 0, "SKIPPED"))
             continue
 
         print(f"\n{'─' * 70}")
-        print(f"  Running: {sql_file}")
+        print(f"  Running: {rel_path}")
+        print(f"  ({description})")
         print(f"{'─' * 70}")
 
         start = time.time()
@@ -237,7 +239,7 @@ def main():
         total_success += success
         total_errors += errors
         status = "OK" if errors == 0 else f"ERRORS ({errors})"
-        file_results.append((sql_file, success, errors, status))
+        file_results.append((rel_path, success, errors, status))
 
         print(f"\n  Result: {success} succeeded, {errors} failed ({elapsed:.1f}s)")
 
@@ -245,12 +247,13 @@ def main():
     print(f"\n{'=' * 70}")
     print("DEPLOYMENT SUMMARY")
     print(f"{'=' * 70}")
-    print(f"{'File':<40} {'OK':>5} {'Err':>5}  Status")
-    print(f"{'─' * 60}")
+    print(f"{'File':<50} {'OK':>5} {'Err':>5}  Status")
+    print(f"{'─' * 70}")
     for name, s, e, status in file_results:
-        print(f"{name:<40} {s:>5} {e:>5}  {status}")
-    print(f"{'─' * 60}")
-    print(f"{'TOTAL':<40} {total_success:>5} {total_errors:>5}")
+        short = name.split('/')[-1]
+        print(f"{short:<50} {s:>5} {e:>5}  {status}")
+    print(f"{'─' * 70}")
+    print(f"{'TOTAL':<50} {total_success:>5} {total_errors:>5}")
     print(f"{'=' * 70}")
 
     if total_errors > 0:

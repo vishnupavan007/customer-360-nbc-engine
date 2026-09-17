@@ -2,7 +2,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 from snowflake.snowpark import Session
 
@@ -16,7 +16,7 @@ session = Session.builder.configs({
     "schema": "APP",
 }).create()
 
-yaml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "semantic", "customer_360_semantic.yaml")
+yaml_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "serving", "semantic_model", "customer_360_semantic.yaml")
 with open(yaml_path, "r", encoding="utf-8") as f:
     yaml_content = f.read()
 

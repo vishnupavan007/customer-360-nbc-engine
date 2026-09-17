@@ -3,7 +3,7 @@ import os
 import subprocess
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 account = os.getenv("SNOWFLAKE_ACCOUNT")
 user = os.getenv("SNOWFLAKE_USER")
@@ -45,7 +45,7 @@ print("\nDeploying Streamlit app...")
 deploy_cmd = ["snow", "streamlit", "deploy", "--replace"]
 deploy_result = subprocess.run(
     deploy_cmd,
-    cwd=os.path.join(os.path.dirname(os.path.abspath(__file__)), "streamlit_app"),
+    cwd=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app"),
     capture_output=True,
     text=True,
     env=env,

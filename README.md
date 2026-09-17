@@ -155,22 +155,34 @@ The project generates realistic, referentially consistent synthetic data — no 
 
 ```
 customer-360-nbc-engine/
-├── sql/
-│   ├── 00_setup.sql              # Database + schema creation
-│   ├── 01_raw_tables.sql         # RAW landing table DDL
-│   ├── 02_synthetic_data.sql     # Synthetic data generation (3,450+ rows)
-│   ├── 03_clean_dynamic_tables.sql   # CLEAN layer: 6 dynamic tables
-│   ├── 04_curated_dynamic_tables.sql # CURATED layer: unified 360 + timeline
-│   ├── 05_ai_enrichment.sql      # AI layer: sentiment, churn, NBA, Cortex Search
-│   ├── 06_semantic_model.sql     # Semantic view creation instructions
-│   ├── 07_cortex_agent.sql       # Cortex Agent configuration (Snowsight UI)
+│
+├── infrastructure/
+│   └── 00_setup.sql              # One-time: database, schemas, warehouse
+│
+├── pipeline/                     # Data pipeline (run independently per layer)
+│   ├── schema/
+│   │   └── 01_raw_tables.sql     # RAW landing table DDL
+│   ├── data/
+│   │   └── 02_synthetic_data.sql # Synthetic data generation (3,450+ rows)
+│   ├── clean/
+│   │   └── 03_clean_dynamic_tables.sql   # CLEAN layer: 6 dynamic tables
+│   ├── curated/
+│   │   └── 04_curated_dynamic_tables.sql # CURATED layer: unified 360 + timeline
+│   └── ai/
+│       └── 05_ai_enrichment.sql  # AI layer: sentiment, churn, NBA, Cortex Search
+│
+├── serving/                      # Analytical serving layer (evolves independently)
+│   ├── semantic_model/
+│   │   ├── 06_semantic_model.sql
+│   │   └── customer_360_semantic.yaml  # 4 tables, 9 verified queries
+│   └── agent/
+│       └── 07_cortex_agent.sql   # Cortex Agent configuration (Snowsight UI)
+│
+├── ops/                          # Operations: monitoring and validation
 │   ├── 08_tasks_and_monitoring.sql  # Scheduled quality monitoring tasks
 │   └── 09_validation.sql         # End-to-end validation queries
 │
-├── semantic/
-│   └── customer_360_semantic.yaml  # Semantic view YAML (4 tables, 9 VQRs)
-│
-├── streamlit_app/
+├── app/                          # Streamlit application (self-contained)
 │   ├── app.py                    # Home dashboard
 │   ├── snowflake.yml             # SiS deployment manifest
 │   ├── pyproject.toml            # Python package config (streamlit 1.52.2)
@@ -182,10 +194,13 @@ customer-360-nbc-engine/
 │       ├── 4_Next_Best_Action.py # NBA recommendations
 │       └── 5_AI_Advisor.py       # AI chat interface
 │
-├── run_pipeline.py               # Execute all SQL scripts (00-09) via connector
-├── deploy_semantic.py            # Deploy semantic view via Snowpark
-├── deploy_streamlit.py           # Deploy Streamlit app via snow CLI
-└── .env                          # Credentials (gitignored)
+├── scripts/                      # Deployment + orchestration
+│   ├── run_pipeline.py           # Execute all SQL layers via connector
+│   ├── deploy_semantic.py        # Deploy semantic view via Snowpark
+│   └── deploy_streamlit.py       # Deploy Streamlit app via snow CLI
+│
+├── .env                          # Credentials (gitignored)
+└── README.md
 ```
 
 ---
@@ -219,23 +234,23 @@ GRANT USE AI FUNCTIONS ON ACCOUNT TO ROLE ACCOUNTADMIN;
 ### 3. Run the SQL pipeline
 
 ```powershell
-python run_pipeline.py
+python scripts/run_pipeline.py
 ```
 
-Executes scripts 00 through 09 in order. Scripts 03-05 create dynamic tables that begin refreshing automatically.
+Executes all layers in order (infrastructure → pipeline → serving → ops). Scripts 03-05 create dynamic tables that begin refreshing automatically.
 
 ### 4. Deploy the semantic view
 
 ```powershell
-python deploy_semantic.py
+python scripts/deploy_semantic.py
 ```
 
-Or create it manually in Snowsight: AI & ML > Cortex Analyst > paste the YAML from `semantic/customer_360_semantic.yaml`.
+Or create it manually in Snowsight: AI & ML > Cortex Analyst > paste the YAML from `serving/semantic_model/customer_360_semantic.yaml`.
 
 ### 5. Deploy the Streamlit app
 
 ```powershell
-python deploy_streamlit.py
+python scripts/deploy_streamlit.py
 ```
 
 ### 6. Create the Cortex Agent (Snowsight UI)
