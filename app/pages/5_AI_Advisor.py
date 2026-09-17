@@ -135,24 +135,42 @@ def answer_with_data(question: str):
             return (f"Error: {e}", None, False)
 
     if "complaint" in q:
-        try:
-            df = session.sql("""
-                SELECT c.FULL_NAME, c.CUSTOMER_SEGMENT,
-                       c.COMPLAINT_COUNT, c.ESCALATION_COUNT,
-                       ROUND(cr.CHURN_RISK_SCORE, 3) AS CHURN_RISK,
-                       cr.RETENTION_URGENCY,
-                       nba.ACTION_TYPE, nba.PRIORITY,
-                       nba.ACTION_DESCRIPTION
-                FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED c
-                LEFT JOIN CUSTOMER_360.AI.DT_CHURN_RISK cr ON c.CUSTOMER_ID = cr.CUSTOMER_ID
-                LEFT JOIN CUSTOMER_360.AI.DT_NEXT_BEST_ACTION nba ON c.CUSTOMER_ID = nba.CUSTOMER_ID
-                WHERE c.COMPLAINT_COUNT > 2
-                ORDER BY c.COMPLAINT_COUNT DESC, cr.CHURN_RISK_SCORE DESC
-            """).to_pandas()
-            count = len(df)
-            return (f"**{count}** customers have more than 2 complaints. Here are their details and recommended actions:", df, True)
-        except Exception as e:
-            return (f"Error: {e}", None, False)
+        # "complaint details" / "complaint history" -> return actual interaction records
+        if any(word in q for word in ["detail", "history", "list", "show", "what", "interaction", "record"]):
+            try:
+                df = session.sql("""
+                    SELECT c.FULL_NAME, c.CUSTOMER_SEGMENT,
+                           i.CHANNEL, i.SUBJECT, i.NOTES,
+                           i.RESOLUTION_STATUS, i.INTERACTION_DATE
+                    FROM CUSTOMER_360.CLEAN.DT_INTERACTIONS i
+                    JOIN CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED c ON i.CUSTOMER_ID = c.CUSTOMER_ID
+                    WHERE i.INTERACTION_TYPE = 'Complaint'
+                      AND c.COMPLAINT_COUNT > 2
+                    ORDER BY c.COMPLAINT_COUNT DESC, i.INTERACTION_DATE DESC
+                """).to_pandas()
+                return (f"Complaint interactions for customers with more than 2 complaints ({len(df)} records):", df, True)
+            except Exception as e:
+                return (f"Error: {e}", None, False)
+        # "how many complaints" / count queries -> return customer summary + NBA
+        else:
+            try:
+                df = session.sql("""
+                    SELECT c.FULL_NAME, c.CUSTOMER_SEGMENT,
+                           c.COMPLAINT_COUNT, c.ESCALATION_COUNT,
+                           ROUND(cr.CHURN_RISK_SCORE, 3) AS CHURN_RISK,
+                           cr.RETENTION_URGENCY,
+                           nba.ACTION_TYPE, nba.PRIORITY,
+                           nba.ACTION_DESCRIPTION
+                    FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED c
+                    LEFT JOIN CUSTOMER_360.AI.DT_CHURN_RISK cr ON c.CUSTOMER_ID = cr.CUSTOMER_ID
+                    LEFT JOIN CUSTOMER_360.AI.DT_NEXT_BEST_ACTION nba ON c.CUSTOMER_ID = nba.CUSTOMER_ID
+                    WHERE c.COMPLAINT_COUNT > 2
+                    ORDER BY c.COMPLAINT_COUNT DESC, cr.CHURN_RISK_SCORE DESC
+                """).to_pandas()
+                count = len(df)
+                return (f"**{count}** customers have more than 2 complaints. Here are their details and recommended actions:", df, True)
+            except Exception as e:
+                return (f"Error: {e}", None, False)
 
     if "claim" in q and ("churn" in q or "risk" in q):
         try:
