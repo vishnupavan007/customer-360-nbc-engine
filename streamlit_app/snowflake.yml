@@ -1,0 +1,20 @@
+definition_version: 2
+entities:
+  customer_360_app:
+    type: streamlit
+    identifier:
+      name: CUSTOMER_360_APP
+      schema: APP
+      database: CUSTOMER_360
+    title: "Customer 360 - Next Best Action Engine"
+    comment: "Unified insurance & lending customer intelligence with AI-powered churn risk and next best action recommendations"
+    query_warehouse: COMPUTE_WH
+    main_file: app.py
+    pages_dir: pages/
+    artifacts:
+      - app.py
+      - pages/1_Customer_360.py
+      - pages/2_Churn_Risk.py
+      - pages/3_Sentiment.py
+      - pages/4_Next_Best_Action.py
+      - pages/5_AI_Advisor.py

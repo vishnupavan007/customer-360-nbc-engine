@@ -1,0 +1,116 @@
+-- =============================================================================
+-- 09_validation.sql - End-to-End Validation Queries
+-- Run these after all objects are created to verify the pipeline
+-- =============================================================================
+
+USE DATABASE CUSTOMER_360;
+USE WAREHOUSE COMPUTE_WH;
+
+-- =========================================================================
+-- 1. Row counts across all layers
+-- =========================================================================
+SELECT 'RAW.RAW_CUSTOMERS' AS TBL, COUNT(*) AS ROWS FROM RAW.RAW_CUSTOMERS
+UNION ALL SELECT 'RAW.RAW_POLICIES', COUNT(*) FROM RAW.RAW_POLICIES
+UNION ALL SELECT 'RAW.RAW_CLAIMS', COUNT(*) FROM RAW.RAW_CLAIMS
+UNION ALL SELECT 'RAW.RAW_LOANS', COUNT(*) FROM RAW.RAW_LOANS
+UNION ALL SELECT 'RAW.RAW_INTERACTIONS', COUNT(*) FROM RAW.RAW_INTERACTIONS
+UNION ALL SELECT 'RAW.RAW_CALL_TRANSCRIPTS', COUNT(*) FROM RAW.RAW_CALL_TRANSCRIPTS
+UNION ALL SELECT 'CLEAN.DT_CUSTOMERS', COUNT(*) FROM CLEAN.DT_CUSTOMERS
+UNION ALL SELECT 'CLEAN.DT_POLICIES', COUNT(*) FROM CLEAN.DT_POLICIES
+UNION ALL SELECT 'CLEAN.DT_CLAIMS', COUNT(*) FROM CLEAN.DT_CLAIMS
+UNION ALL SELECT 'CLEAN.DT_LOANS', COUNT(*) FROM CLEAN.DT_LOANS
+UNION ALL SELECT 'CLEAN.DT_INTERACTIONS', COUNT(*) FROM CLEAN.DT_INTERACTIONS
+UNION ALL SELECT 'CLEAN.DT_CALL_TRANSCRIPTS', COUNT(*) FROM CLEAN.DT_CALL_TRANSCRIPTS
+UNION ALL SELECT 'CURATED.CUSTOMER_360_UNIFIED', COUNT(*) FROM CURATED.CUSTOMER_360_UNIFIED
+UNION ALL SELECT 'CURATED.INTERACTION_TIMELINE', COUNT(*) FROM CURATED.CUSTOMER_INTERACTION_TIMELINE
+UNION ALL SELECT 'AI.DT_TRANSCRIPT_SENTIMENT', COUNT(*) FROM AI.DT_TRANSCRIPT_SENTIMENT
+UNION ALL SELECT 'AI.DT_CHURN_RISK', COUNT(*) FROM AI.DT_CHURN_RISK
+UNION ALL SELECT 'AI.DT_NEXT_BEST_ACTION', COUNT(*) FROM AI.DT_NEXT_BEST_ACTION
+ORDER BY 1;
+
+-- =========================================================================
+-- 2. Referential integrity checks
+-- =========================================================================
+SELECT 'Orphan policies' AS CHECK_NAME, COUNT(*) AS VIOLATIONS
+FROM RAW.RAW_POLICIES p
+LEFT JOIN RAW.RAW_CUSTOMERS c ON p.CUSTOMER_ID = c.CUSTOMER_ID
+WHERE c.CUSTOMER_ID IS NULL;
+
+SELECT 'Orphan claims' AS CHECK_NAME, COUNT(*) AS VIOLATIONS
+FROM RAW.RAW_CLAIMS cl
+LEFT JOIN RAW.RAW_POLICIES p ON cl.POLICY_ID = p.POLICY_ID
+LEFT JOIN RAW.RAW_CUSTOMERS c ON cl.CUSTOMER_ID = c.CUSTOMER_ID
+WHERE p.POLICY_ID IS NULL OR c.CUSTOMER_ID IS NULL;
+
+SELECT 'Orphan loans' AS CHECK_NAME, COUNT(*) AS VIOLATIONS
+FROM RAW.RAW_LOANS l
+LEFT JOIN RAW.RAW_CUSTOMERS c ON l.CUSTOMER_ID = c.CUSTOMER_ID
+WHERE c.CUSTOMER_ID IS NULL;
+
+-- =========================================================================
+-- 3. Dynamic table health
+-- =========================================================================
+SHOW DYNAMIC TABLES IN DATABASE CUSTOMER_360;
+
+-- =========================================================================
+-- 4. AI output quality spot checks
+-- =========================================================================
+SELECT
+    CASE
+        WHEN CHURN_RISK_SCORE >= 0.8 THEN '0.8-1.0 Critical'
+        WHEN CHURN_RISK_SCORE >= 0.6 THEN '0.6-0.8 High'
+        WHEN CHURN_RISK_SCORE >= 0.4 THEN '0.4-0.6 Medium'
+        WHEN CHURN_RISK_SCORE >= 0.2 THEN '0.2-0.4 Low'
+        WHEN CHURN_RISK_SCORE >= 0.0 THEN '0.0-0.2 Minimal'
+        ELSE 'NULL/Invalid'
+    END AS RISK_BUCKET,
+    COUNT(*) AS CUSTOMER_COUNT
+FROM AI.DT_CHURN_RISK
+GROUP BY 1
+ORDER BY 1;
+
+SELECT SENTIMENT_LABEL, COUNT(*) AS TRANSCRIPT_COUNT, ROUND(AVG(SENTIMENT_SCORE), 3) AS AVG_SCORE
+FROM AI.DT_TRANSCRIPT_SENTIMENT
+GROUP BY SENTIMENT_LABEL
+ORDER BY AVG_SCORE;
+
+SELECT ACTION_TYPE, PRIORITY, COUNT(*) AS ACTION_COUNT
+FROM AI.DT_NEXT_BEST_ACTION
+WHERE ACTION_TYPE IS NOT NULL
+GROUP BY ACTION_TYPE, PRIORITY
+ORDER BY ACTION_COUNT DESC;
+
+-- NULL rate in AI outputs (with division-by-zero protection)
+SELECT
+    'DT_CHURN_RISK' AS TABLE_NAME,
+    COUNT(*) AS TOTAL,
+    COUNT(CHURN_RISK_SCORE) AS NON_NULL,
+    ROUND(COUNT(CHURN_RISK_SCORE) * 100.0 / NULLIF(COUNT(*), 0), 1) AS COMPLETENESS_PCT
+FROM AI.DT_CHURN_RISK
+UNION ALL
+SELECT
+    'DT_NEXT_BEST_ACTION',
+    COUNT(*),
+    COUNT(ACTION_TYPE),
+    ROUND(COUNT(ACTION_TYPE) * 100.0 / NULLIF(COUNT(*), 0), 1)
+FROM AI.DT_NEXT_BEST_ACTION;
+
+-- =========================================================================
+-- 5. Sample unified customer 360 record
+-- =========================================================================
+SELECT * FROM CURATED.CUSTOMER_360_UNIFIED LIMIT 5;
+
+-- =========================================================================
+-- 6. End-to-end: customer with churn risk and NBA
+-- =========================================================================
+SELECT
+    c.CUSTOMER_ID, c.FULL_NAME, c.CUSTOMER_SEGMENT, c.TOTAL_PREMIUM,
+    c.COMPOSITE_RISK_LEVEL,
+    cr.CHURN_RISK_SCORE, cr.RETENTION_URGENCY,
+    nba.ACTION_TYPE, nba.ACTION_DESCRIPTION, nba.PRIORITY
+FROM CURATED.CUSTOMER_360_UNIFIED c
+JOIN AI.DT_CHURN_RISK cr ON c.CUSTOMER_ID = cr.CUSTOMER_ID
+JOIN AI.DT_NEXT_BEST_ACTION nba ON c.CUSTOMER_ID = nba.CUSTOMER_ID
+WHERE cr.CHURN_RISK_SCORE IS NOT NULL
+ORDER BY cr.CHURN_RISK_SCORE DESC
+LIMIT 10;

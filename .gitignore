@@ -1,0 +1,14 @@
+# Dependencies
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Snowflake CLI
+output/
+
+# IDE
+.vscode/
+.idea/
+.snowflake/

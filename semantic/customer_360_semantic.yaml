@@ -1,0 +1,422 @@
+name: Customer360SemanticView
+description: >
+  Unified semantic model for Customer 360 analytics covering insurance policies,
+  claims, loans, interactions, sentiment analysis, churn risk, and next best actions.
+  Designed for insurance and lending customer intelligence.
+
+tables:
+  - name: CUSTOMER_360_UNIFIED
+    base_table:
+      database: CUSTOMER_360
+      schema: CURATED
+      table: CUSTOMER_360_UNIFIED
+    description: Master customer 360 record with aggregated metrics across all domains.
+    primary_key:
+      columns:
+        - CUSTOMER_ID
+
+    dimensions:
+      - name: CUSTOMER_ID
+        expr: CUSTOMER_ID
+        data_type: NUMBER
+        description: Unique customer identifier.
+      - name: FULL_NAME
+        expr: FULL_NAME
+        data_type: VARCHAR
+        description: Customer full name.
+      - name: EMAIL
+        expr: EMAIL
+        data_type: VARCHAR
+        description: Customer email address.
+      - name: CITY
+        expr: CITY
+        data_type: VARCHAR
+        description: City of residence.
+      - name: STATE
+        expr: STATE
+        data_type: VARCHAR
+        description: State or region.
+      - name: COUNTRY
+        expr: COUNTRY
+        data_type: VARCHAR
+        description: Country of residence.
+      - name: CUSTOMER_SEGMENT
+        expr: CUSTOMER_SEGMENT
+        data_type: VARCHAR
+        description: Customer tier (Basic, Standard, Premium, VIP).
+      - name: EMPLOYMENT_STATUS
+        expr: EMPLOYMENT_STATUS
+        data_type: VARCHAR
+        description: Employment status of the customer.
+      - name: IS_ACTIVE
+        expr: IS_ACTIVE
+        data_type: BOOLEAN
+        description: Whether the customer is currently active.
+      - name: POLICY_TYPES
+        expr: POLICY_TYPES
+        data_type: VARCHAR
+        description: Comma-separated list of insurance policy types held.
+      - name: PRIMARY_RISK_CATEGORY
+        expr: PRIMARY_RISK_CATEGORY
+        data_type: VARCHAR
+        description: Most common underwriting risk category (Low, Medium, High).
+      - name: LOAN_TYPES
+        expr: LOAN_TYPES
+        data_type: VARCHAR
+        description: Comma-separated list of loan types held.
+      - name: PREFERRED_CHANNEL
+        expr: PREFERRED_CHANNEL
+        data_type: VARCHAR
+        description: Most frequently used interaction channel.
+      - name: COMPOSITE_RISK_LEVEL
+        expr: COMPOSITE_RISK_LEVEL
+        data_type: VARCHAR
+        description: Overall risk level derived from loans, complaints, and lapsed policies.
+      - name: MOST_COMMON_CALL_REASON
+        expr: MOST_COMMON_CALL_REASON
+        data_type: VARCHAR
+        description: Most frequent call reason.
+
+    measures:
+      - name: TOTAL_CUSTOMERS
+        expr: CUSTOMER_ID
+        aggregate: count_distinct
+        description: Total number of distinct customers.
+      - name: AGE
+        expr: AGE
+        data_type: NUMBER
+        description: Customer age in years.
+      - name: CREDIT_SCORE
+        expr: CREDIT_SCORE
+        data_type: NUMBER
+        description: Customer credit score.
+      - name: ANNUAL_INCOME
+        expr: ANNUAL_INCOME
+        data_type: NUMBER
+        description: Customer annual income.
+      - name: TENURE_MONTHS
+        expr: TENURE_MONTHS
+        data_type: NUMBER
+        description: Months since customer signup.
+      - name: TOTAL_POLICIES
+        expr: TOTAL_POLICIES
+        data_type: NUMBER
+        description: Total number of insurance policies.
+      - name: ACTIVE_POLICIES
+        expr: ACTIVE_POLICIES
+        data_type: NUMBER
+        description: Number of currently active policies.
+      - name: TOTAL_PREMIUM
+        expr: TOTAL_PREMIUM
+        data_type: NUMBER
+        description: Total premium amount across all policies.
+      - name: TOTAL_CLAIMS
+        expr: TOTAL_CLAIMS
+        data_type: NUMBER
+        description: Total number of claims filed.
+      - name: OPEN_CLAIMS
+        expr: OPEN_CLAIMS
+        data_type: NUMBER
+        description: Number of currently open claims.
+      - name: TOTAL_CLAIM_AMOUNT
+        expr: TOTAL_CLAIM_AMOUNT
+        data_type: NUMBER
+        description: Total claim amount filed.
+      - name: TOTAL_LOANS
+        expr: TOTAL_LOANS
+        data_type: NUMBER
+        description: Total number of loans.
+      - name: TOTAL_OUTSTANDING_BALANCE
+        expr: TOTAL_OUTSTANDING_BALANCE
+        data_type: NUMBER
+        description: Total outstanding loan balance.
+      - name: MAX_DAYS_PAST_DUE
+        expr: MAX_DAYS_PAST_DUE
+        data_type: NUMBER
+        description: Maximum days past due across all loans.
+      - name: TOTAL_INTERACTIONS
+        expr: TOTAL_INTERACTIONS
+        data_type: NUMBER
+        description: Total number of customer interactions.
+      - name: COMPLAINT_COUNT
+        expr: COMPLAINT_COUNT
+        data_type: NUMBER
+        description: Number of complaints filed.
+      - name: TOTAL_CALLS
+        expr: TOTAL_CALLS
+        data_type: NUMBER
+        description: Total number of phone calls.
+      - name: ESTIMATED_CLV
+        expr: ESTIMATED_CLV
+        data_type: NUMBER
+        description: Estimated customer lifetime value.
+
+  - name: CHURN_RISK
+    base_table:
+      database: CUSTOMER_360
+      schema: AI
+      table: DT_CHURN_RISK
+    description: AI-generated churn risk scores and risk factors per customer.
+    primary_key:
+      columns:
+        - CUSTOMER_ID
+
+    dimensions:
+      - name: CUSTOMER_ID
+        expr: CUSTOMER_ID
+        data_type: NUMBER
+        description: Unique customer identifier.
+      - name: FULL_NAME
+        expr: FULL_NAME
+        data_type: VARCHAR
+        description: Customer full name.
+      - name: CUSTOMER_SEGMENT
+        expr: CUSTOMER_SEGMENT
+        data_type: VARCHAR
+        description: Customer segment.
+      - name: RETENTION_URGENCY
+        expr: RETENTION_URGENCY
+        data_type: VARCHAR
+        description: AI-assessed retention urgency (Critical, High, Medium, Low).
+      - name: IS_ACTIVE
+        expr: IS_ACTIVE
+        data_type: BOOLEAN
+        description: Whether the customer is active.
+
+    measures:
+      - name: CHURN_RISK_SCORE
+        expr: CHURN_RISK_SCORE
+        data_type: FLOAT
+        description: AI-predicted churn risk score from 0 to 1.
+      - name: MODEL_CONFIDENCE
+        expr: MODEL_CONFIDENCE
+        data_type: FLOAT
+        description: Confidence level of the churn prediction.
+      - name: AVG_SENTIMENT_SCORE
+        expr: AVG_SENTIMENT_SCORE
+        data_type: FLOAT
+        description: Average sentiment score from call transcripts.
+      - name: NEGATIVE_CALL_COUNT
+        expr: NEGATIVE_CALL_COUNT
+        data_type: NUMBER
+        description: Number of calls with negative sentiment.
+
+  - name: NEXT_BEST_ACTION
+    base_table:
+      database: CUSTOMER_360
+      schema: AI
+      table: DT_NEXT_BEST_ACTION
+    description: AI-recommended next best actions per customer.
+    primary_key:
+      columns:
+        - CUSTOMER_ID
+
+    dimensions:
+      - name: CUSTOMER_ID
+        expr: CUSTOMER_ID
+        data_type: NUMBER
+        description: Unique customer identifier.
+      - name: FULL_NAME
+        expr: FULL_NAME
+        data_type: VARCHAR
+        description: Customer full name.
+      - name: CUSTOMER_SEGMENT
+        expr: CUSTOMER_SEGMENT
+        data_type: VARCHAR
+        description: Customer segment.
+      - name: ACTION_TYPE
+        expr: ACTION_TYPE
+        data_type: VARCHAR
+        description: Recommended action type.
+      - name: ACTION_DESCRIPTION
+        expr: ACTION_DESCRIPTION
+        data_type: VARCHAR
+        description: Specific action recommendation.
+      - name: PRIORITY
+        expr: PRIORITY
+        data_type: VARCHAR
+        description: Action priority (High, Medium, Low).
+      - name: RECOMMENDED_CHANNEL
+        expr: RECOMMENDED_CHANNEL
+        data_type: VARCHAR
+        description: Recommended channel for the action.
+      - name: RATIONALE
+        expr: RATIONALE
+        data_type: VARCHAR
+        description: Why this action is recommended.
+      - name: LATEST_CALL_REASON
+        expr: LATEST_CALL_REASON
+        data_type: VARCHAR
+        description: Reason for the most recent call.
+
+    measures:
+      - name: CHURN_RISK_SCORE
+        expr: CHURN_RISK_SCORE
+        data_type: FLOAT
+        description: Customer churn risk score.
+      - name: LATEST_SENTIMENT_SCORE
+        expr: LATEST_SENTIMENT_SCORE
+        data_type: FLOAT
+        description: Sentiment from the most recent call.
+      - name: TOTAL_PREMIUM
+        expr: TOTAL_PREMIUM
+        data_type: NUMBER
+        description: Total premium across all policies.
+      - name: ESTIMATED_CLV
+        expr: ESTIMATED_CLV
+        data_type: NUMBER
+        description: Estimated customer lifetime value.
+
+  - name: TRANSCRIPT_SENTIMENT
+    base_table:
+      database: CUSTOMER_360
+      schema: AI
+      table: DT_TRANSCRIPT_SENTIMENT
+    description: Sentiment analysis results for call transcripts.
+    primary_key:
+      columns:
+        - TRANSCRIPT_ID
+
+    dimensions:
+      - name: TRANSCRIPT_ID
+        expr: TRANSCRIPT_ID
+        data_type: NUMBER
+        description: Unique transcript identifier.
+      - name: CUSTOMER_ID
+        expr: CUSTOMER_ID
+        data_type: NUMBER
+        description: Customer who was on the call.
+      - name: CALL_DATE
+        expr: CALL_DATE
+        data_type: TIMESTAMP
+        description: Date and time of the call.
+      - name: CALL_REASON
+        expr: CALL_REASON
+        data_type: VARCHAR
+        description: Reason for the call.
+      - name: AGENT_NAME
+        expr: AGENT_NAME
+        data_type: VARCHAR
+        description: Name of the agent who handled the call.
+      - name: SENTIMENT_LABEL
+        expr: SENTIMENT_LABEL
+        data_type: VARCHAR
+        description: Sentiment category (Positive, Neutral, Negative).
+      - name: CALL_SUMMARY
+        expr: CALL_SUMMARY
+        data_type: VARCHAR
+        description: AI-generated summary of the call.
+
+    measures:
+      - name: SENTIMENT_SCORE
+        expr: SENTIMENT_SCORE
+        data_type: FLOAT
+        description: Numeric sentiment score from -1 to 1.
+      - name: DURATION_SECONDS
+        expr: DURATION_SECONDS
+        data_type: NUMBER
+        description: Call duration in seconds.
+
+relationships:
+  - name: churn_to_customer
+    left_table: CHURN_RISK
+    right_table: CUSTOMER_360_UNIFIED
+    join_type: inner
+    relationship_type: many_to_one
+    on:
+      - left_column: CUSTOMER_ID
+        right_column: CUSTOMER_ID
+
+  - name: nba_to_customer
+    left_table: NEXT_BEST_ACTION
+    right_table: CUSTOMER_360_UNIFIED
+    join_type: inner
+    relationship_type: many_to_one
+    on:
+      - left_column: CUSTOMER_ID
+        right_column: CUSTOMER_ID
+
+  - name: sentiment_to_customer
+    left_table: TRANSCRIPT_SENTIMENT
+    right_table: CUSTOMER_360_UNIFIED
+    join_type: inner
+    relationship_type: many_to_one
+    on:
+      - left_column: CUSTOMER_ID
+        right_column: CUSTOMER_ID
+
+  - name: nba_to_churn
+    left_table: NEXT_BEST_ACTION
+    right_table: CHURN_RISK
+    join_type: inner
+    relationship_type: one_to_one
+    on:
+      - left_column: CUSTOMER_ID
+        right_column: CUSTOMER_ID
+
+verified_queries:
+  - name: high_risk_premium_customers
+    question: How many high-risk churn customers are in the Premium segment?
+    sql: >
+      SELECT COUNT(DISTINCT cr.CUSTOMER_ID) AS high_risk_premium_count
+      FROM CUSTOMER_360.AI.DT_CHURN_RISK cr
+      WHERE cr.CHURN_RISK_SCORE >= 0.7
+        AND cr.CUSTOMER_SEGMENT = 'Premium'
+
+  - name: avg_sentiment_by_segment
+    question: What is the average sentiment score by customer segment?
+    sql: >
+      SELECT c.CUSTOMER_SEGMENT,
+             AVG(s.SENTIMENT_SCORE) AS avg_sentiment
+      FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED c
+      JOIN CUSTOMER_360.AI.DT_TRANSCRIPT_SENTIMENT s
+        ON c.CUSTOMER_ID = s.CUSTOMER_ID
+      GROUP BY c.CUSTOMER_SEGMENT
+      ORDER BY avg_sentiment
+
+  - name: top_churn_risk_with_nba
+    question: Show me the top 10 customers by churn risk with their next best action
+    sql: >
+      SELECT cr.FULL_NAME, cr.CUSTOMER_SEGMENT, cr.CHURN_RISK_SCORE,
+             cr.RETENTION_URGENCY,
+             nba.ACTION_TYPE, nba.ACTION_DESCRIPTION, nba.PRIORITY
+      FROM CUSTOMER_360.AI.DT_CHURN_RISK cr
+      JOIN CUSTOMER_360.AI.DT_NEXT_BEST_ACTION nba
+        ON cr.CUSTOMER_ID = nba.CUSTOMER_ID
+      WHERE cr.CHURN_RISK_SCORE IS NOT NULL
+      ORDER BY cr.CHURN_RISK_SCORE DESC
+      LIMIT 10
+
+  - name: common_nba_negative_sentiment
+    question: What are the most common next best actions for customers with negative sentiment?
+    sql: >
+      SELECT nba.ACTION_TYPE, COUNT(*) AS action_count
+      FROM CUSTOMER_360.AI.DT_NEXT_BEST_ACTION nba
+      WHERE nba.LATEST_SENTIMENT_LABEL = 'Negative'
+      GROUP BY nba.ACTION_TYPE
+      ORDER BY action_count DESC
+
+  - name: customer_count_by_segment_country
+    question: How many customers are there by segment and country?
+    sql: >
+      SELECT CUSTOMER_SEGMENT, COUNTRY, COUNT(*) AS customer_count
+      FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED
+      GROUP BY CUSTOMER_SEGMENT, COUNTRY
+      ORDER BY customer_count DESC
+
+  - name: churn_risk_distribution
+    question: What is the distribution of churn risk scores?
+    sql: >
+      SELECT
+        CASE
+          WHEN CHURN_RISK_SCORE >= 0.8 THEN 'Critical (0.8-1.0)'
+          WHEN CHURN_RISK_SCORE >= 0.6 THEN 'High (0.6-0.8)'
+          WHEN CHURN_RISK_SCORE >= 0.4 THEN 'Medium (0.4-0.6)'
+          WHEN CHURN_RISK_SCORE >= 0.2 THEN 'Low (0.2-0.4)'
+          ELSE 'Minimal (0-0.2)'
+        END AS risk_bucket,
+        COUNT(*) AS customer_count
+      FROM CUSTOMER_360.AI.DT_CHURN_RISK
+      WHERE CHURN_RISK_SCORE IS NOT NULL
+      GROUP BY risk_bucket
+      ORDER BY risk_bucket
