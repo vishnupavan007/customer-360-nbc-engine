@@ -46,6 +46,33 @@ with st.sidebar:
 
 MAX_QUESTION_LENGTH = 500
 
+# Domain keywords — question must contain at least one to be in scope
+_DOMAIN_KEYWORDS = {
+    "customer", "customers", "churn", "risk", "policy", "policies",
+    "claim", "claims", "loan", "loans", "premium", "segment", "segments",
+    "sentiment", "action", "actions", "complaint", "complaints",
+    "escalation", "escalations", "interaction", "interactions",
+    "retention", "vip", "basic", "standard", "score", "transcript",
+    "transcripts", "renewal", "renewals", "insurance", "lending",
+    "billing", "coverage", "payment", "nba", "next best", "360",
+    "securelife", "overdue", "high risk", "churn risk", "call",
+    "agent", "robert", "lisa", "david", "donald", "dorothy",
+    "kenji", "barbara", "sarah", "joseph", "tanaka", "ramirez",
+    "harris", "smith", "martin", "singh", "jones", "miller", "brown",
+}
+
+_OUT_OF_SCOPE_REPLY = (
+    "I can only answer questions about customers, churn risk, policies, "
+    "claims, loans, interactions, sentiment, and next best actions for "
+    "SecureLife's insurance and lending portfolio. "
+    "Please ask a question related to your customer data."
+)
+
+
+def is_in_scope(question: str) -> bool:
+    q = question.lower()
+    return any(kw in q for kw in _DOMAIN_KEYWORDS)
+
 
 def call_cortex_agent(messages: list) -> tuple[str, bool]:
     """Call the Cortex Agent via REST API using the active session token."""
@@ -198,12 +225,14 @@ def call_cortex_sql_fallback(question: str) -> tuple[str, object, bool]:
         except Exception as e:
             return (f"Error: {e}", None, False)
 
-    # LLM fallback
+    # LLM fallback — only reached for in-scope questions (guardrail already checked upstream)
     try:
         safe_q = "".join(c for c in question if c.isalnum() or c in " .,?-_'")[:MAX_QUESTION_LENGTH].replace("'", "''")
         result = session.sql(
             f"SELECT SNOWFLAKE.CORTEX.COMPLETE('llama3.1-8b',"
-            f" 'You are a Customer 360 AI Advisor for insurance and lending. Answer specifically. "
+            f" 'You are a Customer 360 AI Advisor ONLY for SecureLife insurance and lending. "
+            f"You MUST refuse any question not about customers, churn, policies, claims, loans, "
+            f"sentiment, or next best actions. Reply: I can only answer questions about customer data. "
             f"Segments: Basic/Standard/Premium/VIP. Churn risk 0-1. "
             f"Question: {safe_q}') AS RESPONSE"
         ).collect()
@@ -230,29 +259,37 @@ if prompt := st.chat_input("Ask about your customers..."):
 # Generate response for latest user message
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     with st.chat_message("assistant"):
-        with st.spinner("Analyzing via Cortex Agent..."):
-            # Try Cortex Agent first
-            agent_text, agent_success = call_cortex_agent(st.session_state.messages)
+        last_question = st.session_state.messages[-1]["content"]
 
-            if agent_success and agent_text and not agent_text.startswith("Agent error"):
-                st.markdown(agent_text)
-                msg_idx = len(st.session_state.messages)
-                st.session_state.messages.append({"role": "assistant", "content": agent_text})
-            else:
-                # Fall back to SQL routing
-                if agent_text.startswith("Agent error"):
-                    st.caption(f"Agent unavailable, using SQL routing. ({agent_text})")
-                text, df, is_live = call_cortex_sql_fallback(st.session_state.messages[-1]["content"])
-                st.markdown(text)
-                if df is not None:
-                    st.dataframe(df, use_container_width=True, hide_index=True)
-                if not is_live:
-                    st.caption("Note: This answer is from the AI model, not live Snowflake data.")
-                msg_idx = len(st.session_state.messages)
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": text,
-                    "is_llm_fallback": not is_live
-                })
-                if df is not None:
-                    st.session_state.dataframes[msg_idx] = df
+        # Guardrail: block off-topic questions before reaching any LLM
+        if not is_in_scope(last_question):
+            refusal = _OUT_OF_SCOPE_REPLY
+            st.warning(refusal)
+            st.session_state.messages.append({"role": "assistant", "content": refusal})
+        else:
+            with st.spinner("Analyzing via Cortex Agent..."):
+                # Try Cortex Agent first
+                agent_text, agent_success = call_cortex_agent(st.session_state.messages)
+
+                if agent_success and agent_text and not agent_text.startswith("Agent error"):
+                    st.markdown(agent_text)
+                    msg_idx = len(st.session_state.messages)
+                    st.session_state.messages.append({"role": "assistant", "content": agent_text})
+                else:
+                    # Fall back to SQL routing
+                    if agent_text.startswith("Agent error"):
+                        st.caption(f"Agent unavailable, using SQL routing. ({agent_text})")
+                    text, df, is_live = call_cortex_sql_fallback(st.session_state.messages[-1]["content"])
+                    st.markdown(text)
+                    if df is not None:
+                        st.dataframe(df, use_container_width=True, hide_index=True)
+                    if not is_live:
+                        st.caption("Note: This answer is from the AI model, not live Snowflake data.")
+                    msg_idx = len(st.session_state.messages)
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": text,
+                        "is_llm_fallback": not is_live
+                    })
+                    if df is not None:
+                        st.session_state.dataframes[msg_idx] = df
