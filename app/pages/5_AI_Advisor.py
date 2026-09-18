@@ -54,22 +54,27 @@ def call_cortex_agent(messages: list) -> tuple[str, bool]:
         import urllib.request
         import ssl
 
-        # Extract host and token from the underlying Snowflake connector
         try:
             raw = session._conn._conn
         except AttributeError:
             raw = session.connection
-        host = raw.host          # e.g. sdhndje-sq84485.snowflakecomputing.com
+        host = raw.host
         token = raw.rest.token
 
         url = (
             f"https://{host}/api/v2/databases/CUSTOMER_360/schemas/APP"
             "/agents/CUSTOMER_360_AGENT:run"
         )
-        body = json.dumps({
-            "messages": [{"role": m["role"], "content": m["content"]} for m in messages],
-            "stream": False,
-        }).encode("utf-8")
+
+        # Content must be an array of content items, not a plain string
+        api_messages = []
+        for m in messages:
+            c = m["content"]
+            if isinstance(c, str):
+                c = [{"type": "text", "text": c}]
+            api_messages.append({"role": m["role"], "content": c})
+
+        body = json.dumps({"messages": api_messages, "stream": False}).encode("utf-8")
 
         req = urllib.request.Request(
             url, body,
@@ -77,7 +82,6 @@ def call_cortex_agent(messages: list) -> tuple[str, bool]:
                 "Authorization": f'Snowflake Token="{token}"',
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "X-Snowflake-Authorization-Token-Type": "OAUTH",
             },
             method="POST",
         )
@@ -85,16 +89,18 @@ def call_cortex_agent(messages: list) -> tuple[str, bool]:
         with urllib.request.urlopen(req, context=ctx, timeout=60) as resp:
             data = json.loads(resp.read().decode("utf-8"))
 
-        # Parse the response envelope
-        content = ""
-        if "choices" in data and data["choices"]:
-            content = data["choices"][0].get("message", {}).get("content", "")
-        elif "content" in data:
-            content = data["content"]
+        # Non-streaming response: {"role": "assistant", "content": [{"type": "text", "text": "..."}]}
+        text = ""
+        if "content" in data and isinstance(data["content"], list):
+            for item in data["content"]:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    text += item.get("text", "")
+        elif "choices" in data and data["choices"]:
+            text = data["choices"][0].get("message", {}).get("content", "")
         else:
-            content = str(data)
+            text = str(data)
 
-        return (content, True) if content else ("Empty response from agent.", False)
+        return (text, True) if text else ("Empty response from agent.", False)
     except Exception as e:
         return (f"Agent error: {str(e)}", False)
 
