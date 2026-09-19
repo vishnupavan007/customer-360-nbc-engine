@@ -94,12 +94,23 @@ st.markdown("")
 try:
     dt_raw = session.sql("SHOW DYNAMIC TABLES IN DATABASE CUSTOMER_360").to_pandas()
     if not dt_raw.empty:
-        # Keep only project schemas
+        # Normalise column names to lowercase
+        dt_raw.columns = [c.lower() for c in dt_raw.columns]
+
         dt = dt_raw[dt_raw['schema_name'].isin(['CLEAN', 'CURATED', 'AI'])].copy()
-        dt = dt[['schema_name', 'name', 'rows', 'data_timestamp',
-                  'refresh_mode', 'scheduling_state', 'target_lag']].copy()
-        dt.columns = ['LAYER', 'TABLE', 'ROWS', 'LAST_REFRESH',
-                      'REFRESH_MODE', 'STATE', 'TARGET_LAG']
+
+        # Select only columns that actually exist in this Snowflake version
+        want = {
+            'schema_name': 'LAYER',
+            'name':        'TABLE',
+            'rows':        'ROWS',
+            'data_timestamp': 'LAST_REFRESH',
+            'refresh_mode':   'REFRESH_MODE',
+            'scheduling_state': 'STATE',
+            'target_lag':  'TARGET_LAG',
+        }
+        available = {k: v for k, v in want.items() if k in dt_raw.columns}
+        dt = dt[list(available.keys())].rename(columns=available)
         dt = dt.sort_values(['LAYER', 'TABLE'])
 
         def style_refresh(v):
@@ -190,9 +201,8 @@ dt_hist = safe_sql("""
         REFRESH_START_TIME,
         REFRESH_END_TIME,
         DATEDIFF('second', REFRESH_START_TIME, REFRESH_END_TIME) AS DURATION_SEC,
-        ROWS_INSERTED,
-        ROWS_DELETED,
-        ERROR_CODE
+        ERROR_CODE,
+        ERROR_MESSAGE
     FROM TABLE(CUSTOMER_360.INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY(
         NAME_PREFIX => 'CUSTOMER_360.'
     ))
@@ -213,12 +223,6 @@ else:
 
     st.dataframe(dt_hist.style.map(style_dt_state, subset=['STATE']),
                  use_container_width=True, hide_index=True)
-
-    if dt_hist.get('ROWS_INSERTED') is not None and dt_hist['ROWS_INSERTED'].sum() > 0:
-        ins = (dt_hist.groupby('TABLE_NAME')['ROWS_INSERTED']
-               .sum().reset_index().sort_values('ROWS_INSERTED', ascending=False))
-        st.subheader("Rows Inserted per Table (last 24h)")
-        st.bar_chart(ins, x='TABLE_NAME', y='ROWS_INSERTED', color='#29B5E8')
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Pipeline Info**")
