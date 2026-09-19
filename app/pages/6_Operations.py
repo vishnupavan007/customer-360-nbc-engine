@@ -92,26 +92,30 @@ st.markdown('<div class="layer-header">Dynamic Table Health</div>', unsafe_allow
 st.markdown("")
 
 try:
-    dt_raw = session.sql("SHOW DYNAMIC TABLES IN DATABASE CUSTOMER_360").to_pandas()
-    if not dt_raw.empty:
-        # Normalise column names to lowercase
-        dt_raw.columns = [c.lower() for c in dt_raw.columns]
+    # Use .collect() to get Row objects — avoids to_pandas() column-count mismatch on SHOW results
+    rows = session.sql("SHOW DYNAMIC TABLES IN DATABASE CUSTOMER_360").collect()
+    records = []
+    for row in rows:
+        try:
+            schema = str(row['schema_name'])
+            if schema not in ('CLEAN', 'CURATED', 'AI'):
+                continue
+            records.append({
+                'LAYER':        schema,
+                'TABLE':        str(row['name']),
+                'ROWS':         row['rows'],
+                'LAST_REFRESH': row['data_timestamp'],
+                'REFRESH_MODE': str(row['refresh_mode']),
+                'STATE':        str(row['scheduling_state']),
+                'TARGET_LAG':   str(row['target_lag']),
+            })
+        except Exception:
+            pass
 
-        dt = dt_raw[dt_raw['schema_name'].isin(['CLEAN', 'CURATED', 'AI'])].copy()
-
-        # Select only columns that actually exist in this Snowflake version
-        want = {
-            'schema_name': 'LAYER',
-            'name':        'TABLE',
-            'rows':        'ROWS',
-            'data_timestamp': 'LAST_REFRESH',
-            'refresh_mode':   'REFRESH_MODE',
-            'scheduling_state': 'STATE',
-            'target_lag':  'TARGET_LAG',
-        }
-        available = {k: v for k, v in want.items() if k in dt_raw.columns}
-        dt = dt[list(available.keys())].rename(columns=available)
-        dt = dt.sort_values(['LAYER', 'TABLE'])
+    if not records:
+        st.info("No dynamic tables found.")
+    else:
+        dt = pd.DataFrame(records).sort_values(['LAYER', 'TABLE'])
 
         def style_refresh(v):
             v = str(v).upper()
@@ -128,14 +132,11 @@ try:
         styled = dt.style.map(style_refresh, subset=['REFRESH_MODE']).map(style_state, subset=['STATE'])
         st.dataframe(styled, use_container_width=True, hide_index=True)
 
-        # Mode summary
         mc = dt['REFRESH_MODE'].str.upper().value_counts()
         c1, c2, c3 = st.columns(3)
         c1.metric("Incremental tables", int(mc.get('INCREMENTAL', 0)), help="Only process changed rows")
         c2.metric("Full refresh tables", int(mc.get('FULL', 0)), help="Re-scan all rows every refresh")
         c3.metric("Total dynamic tables", len(dt))
-    else:
-        st.info("No dynamic tables found.")
 except Exception as e:
     st.error(f"Could not load dynamic table info: {e}")
 
@@ -200,9 +201,7 @@ dt_hist = safe_sql("""
         STATE,
         REFRESH_START_TIME,
         REFRESH_END_TIME,
-        DATEDIFF('second', REFRESH_START_TIME, REFRESH_END_TIME) AS DURATION_SEC,
-        ERROR_CODE,
-        ERROR_MESSAGE
+        DATEDIFF('second', REFRESH_START_TIME, REFRESH_END_TIME) AS DURATION_SEC
     FROM TABLE(CUSTOMER_360.INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY(
         NAME_PREFIX => 'CUSTOMER_360.'
     ))
