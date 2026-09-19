@@ -19,3 +19,4 @@ entities:
       - pages/4_Next_Best_Action.py
       - pages/5_AI_Advisor.py
       - pyproject.toml
+      - .streamlit/config.toml

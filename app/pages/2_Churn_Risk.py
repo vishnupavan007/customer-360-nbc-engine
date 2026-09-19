@@ -9,10 +9,20 @@ except Exception as e:
     st.error(f"Could not connect to Snowflake: {e}")
     st.stop()
 
+st.markdown("""
+<style>
+.badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:0.78rem; font-weight:700; }
+.badge-critical { background:#FFCDD2; color:#B71C1C; }
+.badge-high     { background:#FFE0B2; color:#E65100; }
+.badge-medium   { background:#FFF9C4; color:#F57F17; }
+.badge-low      { background:#C8E6C9; color:#1B5E20; }
+.badge-minimal  { background:#E8F5E9; color:#2E7D32; }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("Churn Risk Dashboard")
 st.caption("AI-predicted churn risk analysis across customer segments")
 
-# Load segment options from DB (controlled values -- not user freetext)
 try:
     seg_df = session.sql("SELECT DISTINCT CUSTOMER_SEGMENT FROM CUSTOMER_360.AI.DT_CHURN_RISK ORDER BY 1").to_pandas()
     all_segments = seg_df["CUSTOMER_SEGMENT"].tolist()
@@ -25,19 +35,16 @@ with st.sidebar:
     selected = st.multiselect("Customer Segment", options=all_segments, default=all_segments)
     risk_min = st.slider("Min Churn Risk Score", 0.0, 1.0, 0.0, 0.05)
 
-# Guard against empty selection
 if not selected:
     st.warning("Please select at least one customer segment.")
     st.stop()
 
-# Allowlist: only pass back values that came from the DB query
 valid_segments = set(all_segments)
 safe_selected = [s for s in selected if s in valid_segments]
 if not safe_selected:
     st.warning("No valid segments selected.")
     st.stop()
 
-# Build IN-list from DB-sourced allowlist values
 seg_placeholders = ", ".join([f"'{s}'" for s in safe_selected])
 risk_min_val = float(risk_min)
 
@@ -63,12 +70,13 @@ kpis = safe_sql(f"""
 if kpis is not None:
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Customers Analyzed", f"{kpis['TOTAL'].iloc[0]:,}")
-    k2.metric("High Risk (>=0.7)", f"{kpis['HIGH_RISK'].iloc[0]:,}")
+    high = int(kpis['HIGH_RISK'].iloc[0])
+    total = int(kpis['TOTAL'].iloc[0])
+    k2.metric("High Risk (≥0.7)", f"{high:,}", delta=f"{high/total:.0%} of total" if total else None, delta_color="inverse")
     k3.metric("Avg Churn Risk", f"{kpis['AVG_RISK'].iloc[0]:.3f}")
     k4.metric("Avg Model Confidence", f"{kpis['AVG_CONF'].iloc[0]:.1%}")
 
 st.divider()
-
 left, right = st.columns(2)
 
 with left:
@@ -85,7 +93,12 @@ with left:
         GROUP BY 1 ORDER BY 1 DESC
     """, "risk distribution")
     if dist is not None:
-        st.bar_chart(dist, x="BUCKET", y="CUSTOMERS", horizontal=True)
+        bucket_colors = {
+            "5-Critical": "#B71C1C", "4-High": "#E65100",
+            "3-Medium": "#F9A825", "2-Low": "#43A047", "1-Minimal": "#1B5E20",
+        }
+        dist["COLOR"] = dist["BUCKET"].map(bucket_colors).fillna("#29B5E8")
+        st.bar_chart(dist, x="BUCKET", y="CUSTOMERS", color="COLOR", horizontal=True)
 
 with right:
     st.subheader("Avg Risk by Segment")
@@ -96,10 +109,11 @@ with right:
         GROUP BY 1 ORDER BY 2 DESC
     """, "segment risk")
     if by_seg is not None:
-        st.bar_chart(by_seg, x="CUSTOMER_SEGMENT", y="AVG_RISK")
+        st.bar_chart(by_seg, x="CUSTOMER_SEGMENT", y="AVG_RISK", color="#29B5E8")
 
 st.divider()
 st.subheader("High-Risk Customers")
+
 detail = safe_sql(f"""
     SELECT FULL_NAME, CUSTOMER_SEGMENT, ROUND(CHURN_RISK_SCORE, 3) AS CHURN_RISK,
            RETENTION_URGENCY, ROUND(MODEL_CONFIDENCE, 2) AS CONFIDENCE,
@@ -110,5 +124,26 @@ detail = safe_sql(f"""
       AND COALESCE(CHURN_RISK_SCORE, 0) >= {risk_min_val}
     ORDER BY CHURN_RISK_SCORE DESC NULLS LAST LIMIT 50
 """, "customer detail")
+
 if detail is not None:
-    st.dataframe(detail, use_container_width=True, hide_index=True)
+    def style_risk(v):
+        if not isinstance(v, float): return ""
+        if v >= 0.8: return "background-color:#FFCDD2;color:#B71C1C;font-weight:bold"
+        if v >= 0.6: return "background-color:#FFE0B2;color:#E65100"
+        if v >= 0.4: return "background-color:#FFF9C4;color:#F57F17"
+        return "background-color:#C8E6C9;color:#1B5E20"
+
+    def style_urgency(v):
+        return {
+            "Critical": "background-color:#FFCDD2;color:#B71C1C;font-weight:bold",
+            "High":     "background-color:#FFE0B2;color:#E65100",
+            "Medium":   "background-color:#FFF9C4;color:#F57F17",
+            "Low":      "background-color:#C8E6C9;color:#1B5E20",
+        }.get(str(v), "")
+
+    styled = (
+        detail.style
+        .map(style_risk, subset=["CHURN_RISK"])
+        .map(style_urgency, subset=["RETENTION_URGENCY"])
+    )
+    st.dataframe(styled, use_container_width=True, hide_index=True)

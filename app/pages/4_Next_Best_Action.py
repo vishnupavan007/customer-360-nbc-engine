@@ -21,7 +21,6 @@ def safe_sql(query, error_label="data"):
         return None
 
 
-# Load action types from DB (controlled values)
 action_types_df = safe_sql("""
     SELECT DISTINCT ACTION_TYPE FROM CUSTOMER_360.AI.DT_NEXT_BEST_ACTION
     WHERE ACTION_TYPE IS NOT NULL ORDER BY 1
@@ -30,7 +29,6 @@ if action_types_df is None:
     st.stop()
 all_types = action_types_df["ACTION_TYPE"].tolist()
 
-# Valid allowlists from static definitions
 VALID_PRIORITIES = {"High", "Medium", "Low"}
 VALID_TYPES = set(all_types)
 
@@ -39,7 +37,6 @@ with st.sidebar:
     priorities = st.multiselect("Priority", ["High", "Medium", "Low"], default=["High", "Medium"])
     selected_types = st.multiselect("Action Type", all_types, default=all_types)
 
-# Guard empty selections
 if not priorities:
     st.warning("Please select at least one priority.")
     st.stop()
@@ -47,7 +44,6 @@ if not selected_types:
     st.warning("Please select at least one action type.")
     st.stop()
 
-# Allowlist validation -- only DB-sourced or static values pass through
 safe_priorities = [p for p in priorities if p in VALID_PRIORITIES]
 safe_types = [t for t in selected_types if t in VALID_TYPES]
 
@@ -77,7 +73,6 @@ if kpis is not None:
     k4.metric("Avg Churn Risk", f"{kpis['AVG_CHURN'].iloc[0]:.3f}")
 
 st.divider()
-
 left, right = st.columns(2)
 
 with left:
@@ -90,7 +85,7 @@ with left:
         GROUP BY 1 ORDER BY 2 DESC
     """, "actions by type")
     if by_type is not None:
-        st.bar_chart(by_type, x="ACTION_TYPE", y="ACTION_COUNT")
+        st.bar_chart(by_type, x="ACTION_TYPE", y="ACTION_COUNT", color="#29B5E8")
 
 with right:
     st.subheader("Actions by Channel")
@@ -102,10 +97,11 @@ with right:
         GROUP BY 1 ORDER BY 2 DESC
     """, "actions by channel")
     if by_channel is not None:
-        st.bar_chart(by_channel, x="RECOMMENDED_CHANNEL", y="ACTION_COUNT")
+        ch_colors = {"Email": "#1565C0", "Phone": "#388E3C", "SMS": "#F57F17", "Mobile": "#6A1B9A"}
+        by_channel["COLOR"] = by_channel["RECOMMENDED_CHANNEL"].map(ch_colors).fillna("#29B5E8")
+        st.bar_chart(by_channel, x="RECOMMENDED_CHANNEL", y="ACTION_COUNT", color="COLOR")
 
 st.divider()
-
 st.subheader("Action Queue")
 actions = safe_sql(f"""
     SELECT FULL_NAME, CUSTOMER_SEGMENT, ACTION_TYPE, ACTION_DESCRIPTION,
@@ -120,5 +116,25 @@ actions = safe_sql(f"""
              CHURN_RISK_SCORE DESC NULLS LAST
     LIMIT 100
 """, "action queue")
+
 if actions is not None:
-    st.dataframe(actions, use_container_width=True, hide_index=True)
+    def style_priority(v):
+        return {
+            "High":   "background-color:#FFCDD2;color:#B71C1C;font-weight:bold",
+            "Medium": "background-color:#FFE0B2;color:#E65100",
+            "Low":    "background-color:#C8E6C9;color:#1B5E20",
+        }.get(str(v), "")
+
+    def style_churn(v):
+        if not isinstance(v, float): return ""
+        if v >= 0.8: return "background-color:#FFCDD2;color:#B71C1C;font-weight:bold"
+        if v >= 0.6: return "background-color:#FFE0B2;color:#E65100"
+        if v >= 0.4: return "background-color:#FFF9C4;color:#F57F17"
+        return "background-color:#C8E6C9;color:#1B5E20"
+
+    styled = (
+        actions.style
+        .map(style_priority, subset=["PRIORITY"])
+        .map(style_churn, subset=["CHURN_RISK"])
+    )
+    st.dataframe(styled, use_container_width=True, hide_index=True)
