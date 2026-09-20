@@ -10,7 +10,7 @@ USE WAREHOUSE COMPUTE_WH;
 -- DT_CUSTOMERS - Cleaned and enriched customer profiles
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE CLEAN.DT_CUSTOMERS
-  TARGET_LAG = '1 minute'
+  TARGET_LAG = DOWNSTREAM
   WAREHOUSE = COMPUTE_WH
 AS
 SELECT
@@ -42,7 +42,7 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID ORDER BY UPDATED_AT DESC) = 
 -- DT_POLICIES - Cleaned insurance policies
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE CLEAN.DT_POLICIES
-  TARGET_LAG = '1 minute'
+  TARGET_LAG = DOWNSTREAM
   WAREHOUSE = COMPUTE_WH
 AS
 SELECT
@@ -72,7 +72,7 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY POLICY_ID ORDER BY CREATED_AT DESC) = 1;
 -- DT_CLAIMS - Cleaned insurance claims
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE CLEAN.DT_CLAIMS
-  TARGET_LAG = '1 minute'
+  TARGET_LAG = DOWNSTREAM
   WAREHOUSE = COMPUTE_WH
 AS
 SELECT
@@ -105,7 +105,7 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY CLAIM_ID ORDER BY CREATED_AT DESC) = 1;
 -- DT_LOANS - Cleaned lending data
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE CLEAN.DT_LOANS
-  TARGET_LAG = '1 minute'
+  TARGET_LAG = DOWNSTREAM
   WAREHOUSE = COMPUTE_WH
 AS
 SELECT
@@ -141,7 +141,7 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY LOAN_ID ORDER BY CREATED_AT DESC) = 1;
 -- DT_INTERACTIONS - Cleaned structured interactions
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE CLEAN.DT_INTERACTIONS
-  TARGET_LAG = '1 minute'
+  TARGET_LAG = DOWNSTREAM
   WAREHOUSE = COMPUTE_WH
 AS
 SELECT
@@ -164,7 +164,7 @@ QUALIFY ROW_NUMBER() OVER (PARTITION BY INTERACTION_ID ORDER BY CREATED_AT DESC)
 -- DT_CALL_TRANSCRIPTS - Cleaned call transcripts
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE CLEAN.DT_CALL_TRANSCRIPTS
-  TARGET_LAG = '1 minute'
+  TARGET_LAG = DOWNSTREAM
   WAREHOUSE = COMPUTE_WH
 AS
 SELECT
