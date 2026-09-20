@@ -36,13 +36,13 @@ with st.sidebar:
     for ex in examples:
         if st.button(ex, key=ex):
             st.session_state.messages.append({"role": "user", "content": ex})
-            st.experimental_rerun()
+            st.rerun()
 
     st.markdown("---")
     if st.button("Clear Chat"):
         st.session_state.messages = []
         st.session_state.dataframes = {}
-        st.experimental_rerun()
+        st.rerun()
 
 MAX_QUESTION_LENGTH = 500
 
@@ -75,25 +75,11 @@ def is_in_scope(question: str) -> bool:
 
 
 def call_cortex_agent(messages: list) -> tuple[str, bool]:
-    """Call the Cortex Agent via REST API using the active session token."""
+    """Call the Cortex Agent via SQL — SiS compatible."""
     try:
         import json
-        import urllib.request
-        import ssl
 
-        try:
-            raw = session._conn._conn
-        except AttributeError:
-            raw = session.connection
-        host = raw.host
-        token = raw.rest.token
-
-        url = (
-            f"https://{host}/api/v2/databases/CUSTOMER_360/schemas/APP"
-            "/agents/CUSTOMER_360_AGENT:run"
-        )
-
-        # Content must be an array of content items, not a plain string
+        # Build the messages array for the agent
         api_messages = []
         for m in messages:
             c = m["content"]
@@ -101,33 +87,32 @@ def call_cortex_agent(messages: list) -> tuple[str, bool]:
                 c = [{"type": "text", "text": c}]
             api_messages.append({"role": m["role"], "content": c})
 
-        body = json.dumps({"messages": api_messages, "stream": False}).encode("utf-8")
+        payload = json.dumps({"messages": api_messages, "stream": False})
+        safe_payload = payload.replace("'", "''")
 
-        req = urllib.request.Request(
-            url, body,
-            headers={
-                "Authorization": f'Snowflake Token="{token}"',
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            method="POST",
-        )
-        ctx = ssl.create_default_context()
-        with urllib.request.urlopen(req, context=ctx, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        result = session.sql(
+            f"SELECT SNOWFLAKE.CORTEX.AGENT('{AGENT_NAME}', "
+            f"PARSE_JSON('{safe_payload}')) AS RESPONSE"
+        ).collect()
 
-        # Non-streaming response: {"role": "assistant", "content": [{"type": "text", "text": "..."}]}
-        text = ""
-        if "content" in data and isinstance(data["content"], list):
-            for item in data["content"]:
-                if isinstance(item, dict) and item.get("type") == "text":
-                    text += item.get("text", "")
-        elif "choices" in data and data["choices"]:
-            text = data["choices"][0].get("message", {}).get("content", "")
-        else:
-            text = str(data)
-
-        return (text, True) if text else ("Empty response from agent.", False)
+        if result and result[0]["RESPONSE"]:
+            resp = result[0]["RESPONSE"]
+            # Parse the response — may be JSON string or plain text
+            try:
+                data = json.loads(resp) if isinstance(resp, str) else resp
+                text = ""
+                if isinstance(data, dict) and "content" in data:
+                    for item in data["content"]:
+                        if isinstance(item, dict) and item.get("type") == "text":
+                            text += item.get("text", "")
+                elif isinstance(data, dict) and "choices" in data:
+                    text = data["choices"][0].get("message", {}).get("content", "")
+                else:
+                    text = str(data)
+                return (text, True) if text else ("Empty response from agent.", False)
+            except (json.JSONDecodeError, TypeError):
+                return (str(resp), True)
+        return ("Empty response from agent.", False)
     except Exception as e:
         return (f"Agent error: {str(e)}", False)
 
