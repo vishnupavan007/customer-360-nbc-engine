@@ -108,10 +108,12 @@ SELECT
         ', negative_call_count=' || COALESCE(s.NEGATIVE_CALL_COUNT::VARCHAR, '0') ||
         ', is_active=' || c.IS_ACTIVE::VARCHAR
     ) AS CHURN_RISK_RAW,
-    TRY_PARSE_JSON(CHURN_RISK_RAW):churn_risk_score::FLOAT AS CHURN_RISK_SCORE,
-    TRY_PARSE_JSON(CHURN_RISK_RAW):retention_urgency::VARCHAR AS RETENTION_URGENCY,
-    TRY_PARSE_JSON(CHURN_RISK_RAW):risk_factors::ARRAY AS RISK_FACTORS,
-    TRY_PARSE_JSON(CHURN_RISK_RAW):confidence::FLOAT AS MODEL_CONFIDENCE
+    -- NOTE: llama3.1-8b wraps JSON in markdown code fences (```json...```).
+    -- REGEXP_SUBSTR extracts the JSON object so TRY_PARSE_JSON can parse it.
+    TRY_PARSE_JSON(REGEXP_SUBSTR(CHURN_RISK_RAW, '\\{[\\s\\S]*\\}')):churn_risk_score::FLOAT AS CHURN_RISK_SCORE,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(CHURN_RISK_RAW, '\\{[\\s\\S]*\\}')):retention_urgency::VARCHAR AS RETENTION_URGENCY,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(CHURN_RISK_RAW, '\\{[\\s\\S]*\\}')):risk_factors::ARRAY AS RISK_FACTORS,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(CHURN_RISK_RAW, '\\{[\\s\\S]*\\}')):confidence::FLOAT AS MODEL_CONFIDENCE
 FROM CURATED.CUSTOMER_360_UNIFIED c
 LEFT JOIN latest_sentiment s ON c.CUSTOMER_ID = s.CUSTOMER_ID;
 
@@ -175,11 +177,13 @@ SELECT
         ', latest_call_reason=' || COALESCE(lc.LATEST_CALL_REASON, 'none') ||
         ', latest_call_summary=' || COALESCE(LEFT(lc.CALL_SUMMARY, 300), 'no recent calls')
     ) AS NBA_RAW,
-    TRY_PARSE_JSON(NBA_RAW):action_type::VARCHAR AS ACTION_TYPE,
-    TRY_PARSE_JSON(NBA_RAW):action_description::VARCHAR AS ACTION_DESCRIPTION,
-    TRY_PARSE_JSON(NBA_RAW):priority::VARCHAR AS PRIORITY,
-    TRY_PARSE_JSON(NBA_RAW):channel::VARCHAR AS RECOMMENDED_CHANNEL,
-    TRY_PARSE_JSON(NBA_RAW):rationale::VARCHAR AS RATIONALE
+    -- NOTE: llama3.1-8b wraps JSON in markdown code fences (```json...```).
+    -- REGEXP_SUBSTR extracts the JSON object so TRY_PARSE_JSON can parse it.
+    TRY_PARSE_JSON(REGEXP_SUBSTR(NBA_RAW, '\\{[\\s\\S]*\\}')):action_type::VARCHAR AS ACTION_TYPE,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(NBA_RAW, '\\{[\\s\\S]*\\}')):action_description::VARCHAR AS ACTION_DESCRIPTION,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(NBA_RAW, '\\{[\\s\\S]*\\}')):priority::VARCHAR AS PRIORITY,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(NBA_RAW, '\\{[\\s\\S]*\\}')):channel::VARCHAR AS RECOMMENDED_CHANNEL,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(NBA_RAW, '\\{[\\s\\S]*\\}')):rationale::VARCHAR AS RATIONALE
 FROM AI.DT_CHURN_RISK cr
 LEFT JOIN latest_call lc ON cr.CUSTOMER_ID = lc.CUSTOMER_ID
 LEFT JOIN CURATED.CUSTOMER_360_UNIFIED u ON cr.CUSTOMER_ID = u.CUSTOMER_ID

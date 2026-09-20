@@ -143,11 +143,13 @@ The project generates realistic, referentially consistent synthetic data — no 
 | Page | Description |
 |------|-------------|
 | Home (`app.py`) | KPI dashboard: total customers, active, high churn risk, high-priority actions; sentiment distribution and churn-by-segment charts; top action queue |
-| Customer 360 (`1_Customer_360.py`) | Search by name or ID; unified profile with 4 tabs (Profile, Policies/Claims, Loans, Interactions) + AI insights panel |
+| Health Check (`0_Health_Check.py`) | SiS API compatibility tests and data connectivity validation |
+| Customer 360 (`1_Customer_360.py`) | Search by name or ID; unified profile with radio-tab navigation (Profile, Policies/Claims, Loans, Interactions) + AI insights panel |
 | Churn Risk (`2_Churn_Risk.py`) | Filterable churn risk dashboard with risk distribution histogram, segment breakdown, and customer detail table |
 | Sentiment (`3_Sentiment.py`) | Sentiment by agent, call reason, and label; negative call drill-down with full transcript viewer |
 | Next Best Action (`4_Next_Best_Action.py`) | Filterable NBA queue by priority and action type; actions-by-type and actions-by-channel charts |
-| AI Advisor (`5_AI_Advisor.py`) | Conversational chat interface; keyword-routed SQL queries for 7 canned questions; Cortex AI fallback with hallucination disclaimer |
+| AI Advisor (`5_AI_Advisor.py`) | Conversational chat interface; Cortex Agent via SQL with SQL-routing fallback; 10 pre-built example questions |
+| Operations (`6_Operations.py`) | Pipeline health: record counts by layer, dynamic table status, task history, DT refresh history |
 
 ---
 
@@ -292,4 +294,15 @@ Dynamic tables with `TARGET_LAG = DOWNSTREAM` only refresh when queried, not on 
 - Cortex Search Service (semantic search over unstructured interactions)
 - Semantic Views + Cortex Analyst (natural language to SQL)
 - Streamlit-in-Snowflake (5-page dashboard)
-- Snowflake CoCo Desktop (planning, development, execution, testing).
+- Snowflake CoCo Desktop (planning, development, execution, testing)
+
+---
+
+## SiS Compatibility
+
+The Streamlit app runs on the SiS **warehouse runtime** (Streamlit 1.22.0). Several modern Streamlit APIs are not available. See **[SIS_COMPATIBILITY.md](SIS_COMPATIBILITY.md)** for:
+
+- Known issues and workarounds (`st.rerun`, `st.tabs`, `st.chat_message`, network access)
+- API compatibility reference table
+- Migration guide for container runtime
+- Browser test results

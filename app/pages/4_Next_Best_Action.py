@@ -72,7 +72,7 @@ if kpis is not None:
     k3.metric("Distinct Action Types", f"{kpis['TYPES'].iloc[0]}")
     k4.metric("Avg Churn Risk", f"{kpis['AVG_CHURN'].iloc[0]:.3f}")
 
-st.divider()
+st.markdown("---")
 left, right = st.columns(2)
 
 with left:
@@ -85,7 +85,7 @@ with left:
         GROUP BY 1 ORDER BY 2 DESC
     """, "actions by type")
     if by_type is not None:
-        st.bar_chart(by_type, x="ACTION_TYPE", y="ACTION_COUNT", color="#29B5E8")
+        st.bar_chart(by_type.set_index("ACTION_TYPE")["ACTION_COUNT"])
 
 with right:
     st.subheader("Actions by Channel")
@@ -97,11 +97,9 @@ with right:
         GROUP BY 1 ORDER BY 2 DESC
     """, "actions by channel")
     if by_channel is not None:
-        ch_colors = {"Email": "#1565C0", "Phone": "#388E3C", "SMS": "#F57F17", "Mobile": "#6A1B9A"}
-        by_channel["COLOR"] = by_channel["RECOMMENDED_CHANNEL"].map(ch_colors).fillna("#29B5E8")
-        st.bar_chart(by_channel, x="RECOMMENDED_CHANNEL", y="ACTION_COUNT", color="COLOR")
+        st.bar_chart(by_channel.set_index("RECOMMENDED_CHANNEL")["ACTION_COUNT"])
 
-st.divider()
+st.markdown("---")
 st.subheader("Action Queue")
 actions = safe_sql(f"""
     SELECT FULL_NAME, CUSTOMER_SEGMENT, ACTION_TYPE, ACTION_DESCRIPTION,
@@ -137,4 +135,4 @@ if actions is not None:
         .map(style_priority, subset=["PRIORITY"])
         .map(style_churn, subset=["CHURN_RISK"])
     )
-    st.dataframe(styled, use_container_width=True, hide_index=True)
+    st.dataframe(styled)

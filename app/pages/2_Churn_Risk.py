@@ -76,7 +76,7 @@ if kpis is not None:
     k3.metric("Avg Churn Risk", f"{kpis['AVG_RISK'].iloc[0]:.3f}")
     k4.metric("Avg Model Confidence", f"{kpis['AVG_CONF'].iloc[0]:.1%}")
 
-st.divider()
+st.markdown("---")
 left, right = st.columns(2)
 
 with left:
@@ -97,8 +97,7 @@ with left:
             "5-Critical": "#B71C1C", "4-High": "#E65100",
             "3-Medium": "#F9A825", "2-Low": "#43A047", "1-Minimal": "#1B5E20",
         }
-        dist["COLOR"] = dist["BUCKET"].map(bucket_colors).fillna("#29B5E8")
-        st.bar_chart(dist, x="BUCKET", y="CUSTOMERS", color="COLOR", horizontal=True)
+        st.bar_chart(dist.set_index("BUCKET")["CUSTOMERS"])
 
 with right:
     st.subheader("Avg Risk by Segment")
@@ -109,9 +108,9 @@ with right:
         GROUP BY 1 ORDER BY 2 DESC
     """, "segment risk")
     if by_seg is not None:
-        st.bar_chart(by_seg, x="CUSTOMER_SEGMENT", y="AVG_RISK", color="#29B5E8")
+        st.bar_chart(by_seg.set_index("CUSTOMER_SEGMENT")["AVG_RISK"])
 
-st.divider()
+st.markdown("---")
 st.subheader("High-Risk Customers")
 
 detail = safe_sql(f"""
@@ -146,4 +145,4 @@ if detail is not None:
         .map(style_risk, subset=["CHURN_RISK"])
         .map(style_urgency, subset=["RETENTION_URGENCY"])
     )
-    st.dataframe(styled, use_container_width=True, hide_index=True)
+    st.dataframe(styled)

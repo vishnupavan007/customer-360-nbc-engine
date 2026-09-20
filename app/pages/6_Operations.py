@@ -26,9 +26,9 @@ st.title("Operations Dashboard")
 st.caption("Pipeline health, record counts, and refresh status across all layers")
 
 if st.button("Refresh Data", type="primary"):
-    st.rerun()
+    st.experimental_rerun()
 st.caption(f"Loaded at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
-st.divider()
+st.markdown("---")
 
 
 def safe_sql(query, error_label="data"):
@@ -83,9 +83,9 @@ if not counts.empty:
             subset = counts[counts['LAYER'] == layer][['TABLE_NAME', 'ROW_COUNT']].reset_index(drop=True)
             if not subset.empty:
                 st.markdown(f"**{layer}**")
-                st.dataframe(subset, use_container_width=True, hide_index=True)
+                st.dataframe(subset)
 
-st.divider()
+st.markdown("---")
 
 # ── Section 2: Dynamic table health (via SHOW DYNAMIC TABLES) ──────────────
 st.markdown('<div class="layer-header">Dynamic Table Health</div>', unsafe_allow_html=True)
@@ -130,7 +130,7 @@ try:
             return ''
 
         styled = dt.style.map(style_refresh, subset=['REFRESH_MODE']).map(style_state, subset=['STATE'])
-        st.dataframe(styled, use_container_width=True, hide_index=True)
+        st.dataframe(styled)
 
         mc = dt['REFRESH_MODE'].str.upper().value_counts()
         c1, c2, c3 = st.columns(3)
@@ -140,7 +140,7 @@ try:
 except Exception as e:
     st.error(f"Could not load dynamic table info: {e}")
 
-st.divider()
+st.markdown("---")
 
 # ── Section 3: Daily task run history ──────────────────────────────────────
 st.markdown('<div class="layer-header">Daily Ingestion Task — Last 7 Days</div>', unsafe_allow_html=True)
@@ -186,9 +186,9 @@ else:
         return ''
 
     st.dataframe(task_hist.style.map(style_task_state, subset=['STATE']),
-                 use_container_width=True, hide_index=True)
+                 use_container_width=True)
 
-st.divider()
+st.markdown("---")
 
 # ── Section 4: Dynamic table refresh history ──────────────────────────────
 st.markdown('<div class="layer-header">Dynamic Table Refresh History (Last 24h)</div>', unsafe_allow_html=True)
@@ -221,7 +221,7 @@ else:
         return ''
 
     st.dataframe(dt_hist.style.map(style_dt_state, subset=['STATE']),
-                 use_container_width=True, hide_index=True)
+                 use_container_width=True)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Pipeline Info**")
