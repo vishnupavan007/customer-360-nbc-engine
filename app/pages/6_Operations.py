@@ -1,8 +1,10 @@
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
 import pandas as pd
+from utils import apply_theme, theme_sidebar, render_df
 
 st.set_page_config(page_title="Operations Dashboard", page_icon="⚙️", layout="wide")
+apply_theme()
 
 try:
     session = get_active_session()
@@ -26,7 +28,7 @@ st.title("Operations Dashboard")
 st.caption("Pipeline health, record counts, and refresh status across all layers")
 
 if st.button("Refresh Data", type="primary"):
-    st.experimental_rerun()
+    st.rerun()
 st.caption(f"Loaded at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 st.markdown("---")
 
@@ -129,8 +131,8 @@ try:
             if v == 'SUSPENDED':           return 'background-color:#FFCDD2;color:#B71C1C'
             return ''
 
-        styled = dt.style.map(style_refresh, subset=['REFRESH_MODE']).map(style_state, subset=['STATE'])
-        st.dataframe(styled)
+        styled = dt
+        render_df(styled)
 
         mc = dt['REFRESH_MODE'].str.upper().value_counts()
         c1, c2, c3 = st.columns(3)
@@ -185,8 +187,7 @@ else:
         if str(v) == 'RUNNING':   return 'background-color:#E3F2FD;color:#0D47A1'
         return ''
 
-    st.dataframe(task_hist.style.map(style_task_state, subset=['STATE']),
-                 use_container_width=True)
+    render_df(task_hist)
 
 st.markdown("---")
 
@@ -220,9 +221,11 @@ else:
         if str(v) == 'RUNNING':   return 'background-color:#E3F2FD;color:#0D47A1'
         return ''
 
-    st.dataframe(dt_hist.style.map(style_dt_state, subset=['STATE']),
-                 use_container_width=True)
+    render_df(dt_hist)
 
+st.sidebar.markdown("---")
+with st.sidebar:
+    theme_sidebar()
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Pipeline Info**")
 st.sidebar.caption("Task: TASK_DAILY_RAW_INGEST")

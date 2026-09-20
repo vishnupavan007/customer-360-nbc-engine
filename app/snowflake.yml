@@ -13,6 +13,7 @@ entities:
     pages_dir: pages/
     artifacts:
       - app.py
+      - utils.py
       - pages/1_Customer_360.py
       - pages/2_Churn_Risk.py
       - pages/3_Sentiment.py

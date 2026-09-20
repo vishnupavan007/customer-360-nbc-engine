@@ -1,13 +1,19 @@
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
+from utils import apply_theme, theme_sidebar, render_df
 
 st.set_page_config(page_title="Customer 360 View", page_icon="👤", layout="wide")
+apply_theme()
 
 try:
     session = get_active_session()
 except Exception as e:
     st.error(f"Could not connect to Snowflake: {e}")
     st.stop()
+
+with st.sidebar:
+    theme_sidebar()
+    st.divider()
 
 # ── Shared CSS (injected on each page load) ─────────────────────────────────
 st.markdown("""
@@ -143,7 +149,7 @@ if search_term:
                         "claims"
                     )
                     if claims is not None and not claims.empty:
-                        st.dataframe(claims)
+                        render_df(claims)
 
                 elif active_tab == "Loans":
                     l1, l2, l3 = st.columns(3)
@@ -158,7 +164,7 @@ if search_term:
                         "loans"
                     )
                     if loans is not None and not loans.empty:
-                        st.dataframe(loans)
+                        render_df(loans)
 
                 elif active_tab == "Interactions":
                     timeline = safe_sql(
@@ -168,7 +174,7 @@ if search_term:
                         "timeline"
                     )
                     if timeline is not None and not timeline.empty:
-                        st.dataframe(timeline)
+                        render_df(timeline)
 
                 # ── AI Insights ──────────────────────────────────────────
                 churn_nba = safe_sql(
@@ -226,4 +232,4 @@ else:
     """, "segment overview")
     if seg is not None:
         st.subheader("Customer Segments Overview")
-        st.dataframe(seg)
+        render_df(seg)

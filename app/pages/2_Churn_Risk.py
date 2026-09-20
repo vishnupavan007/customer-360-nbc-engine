@@ -1,7 +1,9 @@
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
+from utils import apply_theme, theme_sidebar, render_df
 
 st.set_page_config(page_title="Churn Risk Dashboard", page_icon="⚠️", layout="wide")
+apply_theme()
 
 try:
     session = get_active_session()
@@ -31,6 +33,8 @@ except Exception as e:
     st.stop()
 
 with st.sidebar:
+    theme_sidebar()
+    st.divider()
     st.header("Filters")
     selected = st.multiselect("Customer Segment", options=all_segments, default=all_segments)
     risk_min = st.slider("Min Churn Risk Score", 0.0, 1.0, 0.0, 0.05)
@@ -125,24 +129,16 @@ detail = safe_sql(f"""
 """, "customer detail")
 
 if detail is not None:
-    def style_risk(v):
-        if not isinstance(v, float): return ""
-        if v >= 0.8: return "background-color:#FFCDD2;color:#B71C1C;font-weight:bold"
-        if v >= 0.6: return "background-color:#FFE0B2;color:#E65100"
-        if v >= 0.4: return "background-color:#FFF9C4;color:#F57F17"
-        return "background-color:#C8E6C9;color:#1B5E20"
-
-    def style_urgency(v):
-        return {
-            "Critical": "background-color:#FFCDD2;color:#B71C1C;font-weight:bold",
-            "High":     "background-color:#FFE0B2;color:#E65100",
-            "Medium":   "background-color:#FFF9C4;color:#F57F17",
-            "Low":      "background-color:#C8E6C9;color:#1B5E20",
-        }.get(str(v), "")
-
-    styled = (
-        detail.style
-        .map(style_risk, subset=["CHURN_RISK"])
-        .map(style_urgency, subset=["RETENTION_URGENCY"])
-    )
-    st.dataframe(styled)
+    def _risk_s(v):
+        try:
+            f = float(v)
+            if f >= 0.8: return "font-weight:700;color:#EF5350"
+            if f >= 0.6: return "color:#FFA726"
+            if f >= 0.4: return "color:#FFEE58"
+            return "color:#66BB6A"
+        except: return ""
+    def _urg_s(v):
+        return {"Critical":"font-weight:700;color:#EF5350",
+                "High":"color:#FFA726","Medium":"color:#FFEE58",
+                "Low":"color:#66BB6A"}.get(str(v),"")
+    render_df(detail, col_styles={"CHURN_RISK": _risk_s, "RETENTION_URGENCY": _urg_s})

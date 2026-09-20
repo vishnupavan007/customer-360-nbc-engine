@@ -1,9 +1,14 @@
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
+from utils import apply_theme, theme_sidebar, render_df
 
-st.set_page_config(page_title="Customer 360", layout="wide")
+st.set_page_config(page_title="Customer 360", page_icon="🏠", layout="wide")
+apply_theme()
 
 session = get_active_session()
+
+with st.sidebar:
+    theme_sidebar()
 
 def run_query(query):
     return session.sql(query).to_pandas()
@@ -15,16 +20,19 @@ def safe_metric(query, column="CNT", default=0):
     except Exception:
         return default
 
-st.title("Customer 360 - Next Best Action Engine")
+st.title("Customer 360 — Next Best Action Engine")
 st.caption("Unified insurance and lending customer intelligence powered by Snowflake Cortex AI")
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("Total Customers", f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED'):,}")
+    st.metric("Total Customers",
+              f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED'):,}")
 with col2:
-    st.metric("Active Customers", f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED WHERE IS_ACTIVE = TRUE'):,}")
+    st.metric("Active Customers",
+              f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED WHERE IS_ACTIVE = TRUE'):,}")
 with col3:
-    st.metric("High Churn Risk", f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_CHURN_RISK WHERE CHURN_RISK_SCORE >= 0.7'):,}")
+    st.metric("High Churn Risk",
+              f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_CHURN_RISK WHERE CHURN_RISK_SCORE >= 0.7'):,}")
 with col4:
     q = "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_NEXT_BEST_ACTION WHERE PRIORITY = 'High'"
     st.metric("High Priority Actions", f"{safe_metric(q):,}")
@@ -74,6 +82,6 @@ try:
         ORDER BY nba.CHURN_RISK_SCORE DESC
         LIMIT 15
     """)
-    st.dataframe(top_actions, use_container_width=True)
+    render_df(top_actions)
 except Exception as e:
     st.error(str(e))

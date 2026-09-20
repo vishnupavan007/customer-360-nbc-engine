@@ -1,13 +1,18 @@
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
+from utils import apply_theme, theme_sidebar, render_df
 
 st.set_page_config(page_title="Sentiment Analysis", page_icon="💬", layout="wide")
+apply_theme()
 
 try:
     session = get_active_session()
 except Exception as e:
     st.error(f"Could not connect to Snowflake: {e}")
     st.stop()
+
+with st.sidebar:
+    theme_sidebar()
 
 st.title("Call Sentiment Analysis")
 st.caption("AI-powered sentiment insights from customer call transcripts")
@@ -72,7 +77,7 @@ by_agent = safe_sql("""
     GROUP BY AGENT_NAME ORDER BY AVG_SENTIMENT ASC
 """, "agent sentiment")
 if by_agent is not None:
-    st.dataframe(by_agent)
+    render_df(by_agent)
 
 st.markdown("---")
 
@@ -89,7 +94,7 @@ neg = safe_sql("""
 """, "negative calls")
 
 if neg is not None and not neg.empty:
-    st.dataframe(neg)
+    render_df(neg)
 
     st.subheader("View Full Transcript")
     opts = {f"Customer {row['CUSTOMER_ID']} - {row['FULL_NAME']}": int(row['CUSTOMER_ID']) for _, row in neg.iterrows()}
