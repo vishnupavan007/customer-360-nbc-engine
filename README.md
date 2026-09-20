@@ -292,4 +292,4 @@ Dynamic tables with `TARGET_LAG = DOWNSTREAM` only refresh when queried, not on 
 - Cortex Search Service (semantic search over unstructured interactions)
 - Semantic Views + Cortex Analyst (natural language to SQL)
 - Streamlit-in-Snowflake (5-page dashboard)
-- Snowflake CoCo Desktop (planning, development, execution, testing)
+- Snowflake CoCo Desktop (planning, development, execution, testing).
