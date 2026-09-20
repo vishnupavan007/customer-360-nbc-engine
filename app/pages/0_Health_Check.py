@@ -29,11 +29,12 @@ except Exception:
 # ==========================================================================
 # SECTION 2: Streamlit APIs used by this app (every widget type)
 # ==========================================================================
+test("st.expander", lambda: st.expander("_hc_exp"))
+
 with st.expander("Widget Tests (collapsed to reduce visual noise)", expanded=False):
 
     # Layout
     test("st.columns(4)", lambda: st.columns(4))
-    test("st.expander", lambda: st.expander("_hc_exp"))
     test("st.markdown(html)", lambda: st.markdown("<b>ok</b>", unsafe_allow_html=True))
     test("st.caption", lambda: st.caption("ok"))
     test("st.markdown('---')", lambda: st.markdown("---"))
