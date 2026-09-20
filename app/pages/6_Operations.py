@@ -26,7 +26,7 @@ st.title("Operations Dashboard")
 st.caption("Pipeline health, record counts, and refresh status across all layers")
 
 if st.button("Refresh Data", type="primary"):
-    st.rerun()
+    st.experimental_rerun()
 st.caption(f"Loaded at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 st.markdown("---")
 

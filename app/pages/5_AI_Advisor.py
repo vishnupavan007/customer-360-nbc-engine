@@ -36,13 +36,13 @@ with st.sidebar:
     for ex in examples:
         if st.button(ex, key=ex):
             st.session_state.messages.append({"role": "user", "content": ex})
-            st.rerun()
+            st.experimental_rerun()
 
     st.markdown("---")
     if st.button("Clear Chat"):
         st.session_state.messages = []
         st.session_state.dataframes = {}
-        st.rerun()
+        st.experimental_rerun()
 
 MAX_QUESTION_LENGTH = 500
 
