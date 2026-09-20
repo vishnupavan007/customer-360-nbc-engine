@@ -109,9 +109,13 @@ if search_term:
                 )
                 st.markdown("")
 
-                tab1, tab2, tab3, tab4 = st.tabs(["Profile", "Policies & Claims", "Loans", "Interactions"])
+                # Tabs replaced with radio for SiS compatibility (st.tabs requires >= 1.11)
+                active_tab = st.radio(
+                    "Section", ["Profile", "Policies & Claims", "Loans", "Interactions"],
+                    key=f"tab_{cid}"
+                )
 
-                with tab1:
+                if active_tab == "Profile":
                     p1, p2 = st.columns(2)
                     with p1:
                         st.markdown(
@@ -126,7 +130,7 @@ if search_term:
                             f"- **Complaints**: {int(row['COMPLAINT_COUNT'])}"
                         )
 
-                with tab2:
+                elif active_tab == "Policies & Claims":
                     m1, m2, m3, m4 = st.columns(4)
                     m1.metric("Total Policies", int(row["TOTAL_POLICIES"]))
                     m2.metric("Active Policies", int(row["ACTIVE_POLICIES"]))
@@ -139,9 +143,9 @@ if search_term:
                         "claims"
                     )
                     if claims is not None and not claims.empty:
-                        st.dataframe(claims, use_container_width=True, hide_index=True)
+                        st.dataframe(claims)
 
-                with tab3:
+                elif active_tab == "Loans":
                     l1, l2, l3 = st.columns(3)
                     l1.metric("Total Loans", int(row["TOTAL_LOANS"]))
                     l2.metric("Outstanding Balance", f"${row['TOTAL_OUTSTANDING_BALANCE']:,.0f}")
@@ -154,9 +158,9 @@ if search_term:
                         "loans"
                     )
                     if loans is not None and not loans.empty:
-                        st.dataframe(loans, use_container_width=True, hide_index=True)
+                        st.dataframe(loans)
 
-                with tab4:
+                elif active_tab == "Interactions":
                     timeline = safe_sql(
                         f"SELECT EVENT_DATE, EVENT_CATEGORY, EVENT_DESCRIPTION, EVENT_STATUS"
                         f" FROM CUSTOMER_360.CURATED.CUSTOMER_INTERACTION_TIMELINE"
@@ -164,7 +168,7 @@ if search_term:
                         "timeline"
                     )
                     if timeline is not None and not timeline.empty:
-                        st.dataframe(timeline, use_container_width=True, hide_index=True)
+                        st.dataframe(timeline)
 
                 # ── AI Insights ──────────────────────────────────────────
                 churn_nba = safe_sql(
@@ -222,4 +226,4 @@ else:
     """, "segment overview")
     if seg is not None:
         st.subheader("Customer Segments Overview")
-        st.dataframe(seg, use_container_width=True, hide_index=True)
+        st.dataframe(seg)

@@ -34,15 +34,15 @@ with st.sidebar:
         "What did customers say about billing issues?",
     ]
     for ex in examples:
-        if st.button(ex, key=ex, use_container_width=True):
+        if st.button(ex, key=ex):
             st.session_state.messages.append({"role": "user", "content": ex})
-            st.rerun()
+            st.experimental_rerun()
 
-    st.divider()
-    if st.button("Clear Chat", use_container_width=True):
+    st.markdown("---")
+    if st.button("Clear Chat"):
         st.session_state.messages = []
         st.session_state.dataframes = {}
-        st.rerun()
+        st.experimental_rerun()
 
 MAX_QUESTION_LENGTH = 500
 
@@ -241,55 +241,61 @@ def call_cortex_sql_fallback(question: str) -> tuple[str, object, bool]:
         return (f"Unable to answer: {str(e)}", None, False)
 
 
-# Display chat history
+# Display chat history using markdown (no st.chat_message — unavailable in SiS)
 for i, msg in enumerate(st.session_state.messages):
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-        if i in st.session_state.dataframes:
-            st.dataframe(st.session_state.dataframes[i], use_container_width=True, hide_index=True)
-        if msg.get("is_llm_fallback"):
-            st.caption("Note: This answer is from the AI model, not live Snowflake data.")
+    role = msg["role"]
+    prefix = "**You:**" if role == "user" else "**Assistant:**"
+    st.markdown(f"{prefix} {msg['content']}")
+    if i in st.session_state.dataframes:
+        st.dataframe(st.session_state.dataframes[i])
+    if msg.get("is_llm_fallback"):
+        st.caption("Note: This answer is from the AI model, not live Snowflake data.")
 
-# Chat input
-if prompt := st.chat_input("Ask about your customers..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+st.markdown("---")
+
+# Chat input using text_input + button (no st.chat_input — unavailable in SiS)
+input_col, btn_col = st.columns([5, 1])
+with input_col:
+    prompt = st.text_input("Ask about your customers...", key="user_input", label_visibility="collapsed")
+with btn_col:
+    send = st.button("Send")
+
+if send and prompt and prompt.strip():
+    st.session_state.messages.append({"role": "user", "content": prompt.strip()})
 
 # Generate response for latest user message
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
-    with st.chat_message("assistant"):
-        last_question = st.session_state.messages[-1]["content"]
+    last_question = st.session_state.messages[-1]["content"]
 
-        # Guardrail: block off-topic questions before reaching any LLM
-        if not is_in_scope(last_question):
-            refusal = _OUT_OF_SCOPE_REPLY
-            st.warning(refusal)
-            st.session_state.messages.append({"role": "assistant", "content": refusal})
-        else:
-            with st.spinner("Analyzing via Cortex Agent..."):
-                # Try Cortex Agent first
-                agent_text, agent_success = call_cortex_agent(st.session_state.messages)
+    # Guardrail: block off-topic questions before reaching any LLM
+    if not is_in_scope(last_question):
+        refusal = _OUT_OF_SCOPE_REPLY
+        st.warning(refusal)
+        st.session_state.messages.append({"role": "assistant", "content": refusal})
+    else:
+        with st.spinner("Analyzing via Cortex Agent..."):
+            # Try Cortex Agent first
+            agent_text, agent_success = call_cortex_agent(st.session_state.messages)
 
-                if agent_success and agent_text and not agent_text.startswith("Agent error"):
-                    st.markdown(agent_text)
-                    msg_idx = len(st.session_state.messages)
-                    st.session_state.messages.append({"role": "assistant", "content": agent_text})
-                else:
-                    # Fall back to SQL routing
-                    if agent_text.startswith("Agent error"):
-                        st.caption(f"Agent unavailable, using SQL routing. ({agent_text})")
-                    text, df, is_live = call_cortex_sql_fallback(st.session_state.messages[-1]["content"])
-                    st.markdown(text)
-                    if df is not None:
-                        st.dataframe(df, use_container_width=True, hide_index=True)
-                    if not is_live:
-                        st.caption("Note: This answer is from the AI model, not live Snowflake data.")
-                    msg_idx = len(st.session_state.messages)
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": text,
-                        "is_llm_fallback": not is_live
-                    })
-                    if df is not None:
-                        st.session_state.dataframes[msg_idx] = df
+            if agent_success and agent_text and not agent_text.startswith("Agent error"):
+                st.markdown(f"**Assistant:** {agent_text}")
+                msg_idx = len(st.session_state.messages)
+                st.session_state.messages.append({"role": "assistant", "content": agent_text})
+            else:
+                # Fall back to SQL routing
+                if agent_text.startswith("Agent error"):
+                    st.caption(f"Agent unavailable, using SQL routing. ({agent_text})")
+                text, df, is_live = call_cortex_sql_fallback(st.session_state.messages[-1]["content"])
+                st.markdown(f"**Assistant:** {text}")
+                if df is not None:
+                    st.dataframe(df)
+                if not is_live:
+                    st.caption("Note: This answer is from the AI model, not live Snowflake data.")
+                msg_idx = len(st.session_state.messages)
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": text,
+                    "is_llm_fallback": not is_live
+                })
+                if df is not None:
+                    st.session_state.dataframes[msg_idx] = df

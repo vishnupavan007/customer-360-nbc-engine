@@ -36,7 +36,7 @@ if kpis is not None:
     k3.metric("Negative Calls", f"{kpis['NEG'].iloc[0]:,}")
     k4.metric("Positive Calls", f"{kpis['POS'].iloc[0]:,}")
 
-st.divider()
+st.markdown("---")
 
 left, right = st.columns(2)
 
@@ -60,7 +60,7 @@ with right:
     if by_reason is not None:
         st.bar_chart(by_reason, x="CALL_REASON", y="AVG_SENTIMENT")
 
-st.divider()
+st.markdown("---")
 
 st.subheader("Sentiment by Agent")
 by_agent = safe_sql("""
@@ -72,9 +72,9 @@ by_agent = safe_sql("""
     GROUP BY AGENT_NAME ORDER BY AVG_SENTIMENT ASC
 """, "agent sentiment")
 if by_agent is not None:
-    st.dataframe(by_agent, use_container_width=True, hide_index=True)
+    st.dataframe(by_agent)
 
-st.divider()
+st.markdown("---")
 
 st.subheader("Negative Calls - Detail")
 neg = safe_sql("""
@@ -89,7 +89,7 @@ neg = safe_sql("""
 """, "negative calls")
 
 if neg is not None and not neg.empty:
-    st.dataframe(neg, use_container_width=True, hide_index=True)
+    st.dataframe(neg)
 
     st.subheader("View Full Transcript")
     opts = {f"Customer {row['CUSTOMER_ID']} - {row['FULL_NAME']}": int(row['CUSTOMER_ID']) for _, row in neg.iterrows()}
