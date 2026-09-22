@@ -1,94 +1,72 @@
 -- =============================================================================
 -- 12_document_processing.sql
--- Document AI: parse and extract structured fields from insurance documents
--- Uses AI_PARSE_DOCUMENT (full text/OCR) and AI_EXTRACT (structured fields)
+-- Document AI: structured field extraction from insurance documents
+-- Sources from RAW.RAW_DOCUMENTS (same pattern as call transcripts)
+-- Uses SNOWFLAKE.CORTEX.COMPLETE for structured extraction from text content
 -- =============================================================================
 
 USE DATABASE CUSTOMER_360;
 USE WAREHOUSE COMPUTE_WH;
 
 -- =========================================================================
--- Stage (already created, included here for completeness)
--- =========================================================================
-CREATE STAGE IF NOT EXISTS CUSTOMER_360.RAW.DOCUMENT_STAGE
-  DIRECTORY = (ENABLE = TRUE)
-  COMMENT = 'Insurance claim forms and policy documents for AI extraction';
-
--- Refresh directory metadata
-ALTER STAGE CUSTOMER_360.RAW.DOCUMENT_STAGE REFRESH;
-
-
--- =========================================================================
--- DT_DOCUMENT_PARSED - Full text extraction from each document
--- Uses AI_PARSE_DOCUMENT in LAYOUT mode for structured text extraction
+-- DT_DOCUMENT_PARSED - Cleaned document content from RAW layer
+-- Mirrors how DT_CALL_TRANSCRIPTS sources from RAW_CALL_TRANSCRIPTS
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE AI.DT_DOCUMENT_PARSED
   TARGET_LAG = '5 minutes'
   WAREHOUSE = COMPUTE_WH
 AS
 SELECT
-    RELATIVE_PATH AS FILE_NAME,
-    SIZE AS FILE_SIZE_BYTES,
-    LAST_MODIFIED AS FILE_MODIFIED_AT,
-    CASE
-        WHEN RELATIVE_PATH ILIKE '%claim_form%' THEN 'Claim Form'
-        WHEN RELATIVE_PATH ILIKE '%policy_summary%' THEN 'Policy Summary'
-        ELSE 'Other'
-    END AS DOCUMENT_TYPE,
-    AI_PARSE_DOCUMENT(
-        TO_FILE('@CUSTOMER_360.RAW.DOCUMENT_STAGE', RELATIVE_PATH),
-        {'mode': 'LAYOUT'}
-    ):content::VARCHAR AS PARSED_TEXT
-FROM DIRECTORY(@CUSTOMER_360.RAW.DOCUMENT_STAGE)
-WHERE RELATIVE_PATH ILIKE '%.txt' OR RELATIVE_PATH ILIKE '%.pdf';
+    DOCUMENT_ID,
+    CUSTOMER_ID,
+    FILE_NAME,
+    DOCUMENT_TYPE,
+    FILE_SIZE_BYTES,
+    CREATED_AT AS FILE_MODIFIED_AT,
+    DOCUMENT_TEXT AS PARSED_TEXT
+FROM RAW.RAW_DOCUMENTS
+WHERE DOCUMENT_TEXT IS NOT NULL AND LENGTH(TRIM(DOCUMENT_TEXT)) > 0
+QUALIFY ROW_NUMBER() OVER (PARTITION BY DOCUMENT_ID ORDER BY CREATED_AT DESC) = 1;
 
 
 -- =========================================================================
--- DT_DOCUMENT_EXTRACTED - Structured field extraction via AI_EXTRACT
--- Extracts claim/policy fields into JSON, then flattens to columns
+-- DT_DOCUMENT_EXTRACTED - AI-powered structured field extraction
+-- Uses CORTEX.COMPLETE to extract structured fields from document text,
+-- analogous to how DT_CHURN_RISK uses CORTEX.COMPLETE for risk scoring
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE AI.DT_DOCUMENT_EXTRACTED
   TARGET_LAG = '5 minutes'
   WAREHOUSE = COMPUTE_WH
 AS
-WITH raw_extract AS (
-    SELECT
-        d.FILE_NAME,
-        d.DOCUMENT_TYPE,
-        d.FILE_SIZE_BYTES,
-        d.FILE_MODIFIED_AT,
-        d.PARSED_TEXT,
-        AI_EXTRACT(
-            TO_FILE('@CUSTOMER_360.RAW.DOCUMENT_STAGE', d.FILE_NAME),
-            {
-                'document_type': 'Type of document: Claim Form or Policy Summary',
-                'reference_number': 'The main reference number (claim number or policy number)',
-                'policy_number': 'The insurance policy number',
-                'customer_name': 'Full name of the customer or policyholder',
-                'customer_id': 'Customer ID number',
-                'document_date': 'The primary date (date filed for claims, effective date for policies)',
-                'amount': 'The primary dollar amount (claim amount or annual premium)',
-                'category': 'The category or type (Auto, Home, Health, Life)',
-                'status': 'Current status if mentioned',
-                'description': 'Brief description or summary of the document contents'
-            }
-        ) AS EXTRACTED_RAW
-    FROM AI.DT_DOCUMENT_PARSED d
-)
 SELECT
-    FILE_NAME,
-    DOCUMENT_TYPE,
-    FILE_SIZE_BYTES,
-    FILE_MODIFIED_AT,
-    PARSED_TEXT,
-    EXTRACTED_RAW:response:reference_number::VARCHAR AS REFERENCE_NUMBER,
-    EXTRACTED_RAW:response:policy_number::VARCHAR AS POLICY_NUMBER,
-    EXTRACTED_RAW:response:customer_name::VARCHAR AS CUSTOMER_NAME,
-    EXTRACTED_RAW:response:customer_id::VARCHAR AS CUSTOMER_ID,
-    EXTRACTED_RAW:response:document_date::VARCHAR AS DOCUMENT_DATE,
-    EXTRACTED_RAW:response:amount::VARCHAR AS AMOUNT,
-    EXTRACTED_RAW:response:category::VARCHAR AS CATEGORY,
-    EXTRACTED_RAW:response:status::VARCHAR AS STATUS,
-    EXTRACTED_RAW:response:description::VARCHAR AS DESCRIPTION,
-    EXTRACTED_RAW:response:document_type::VARCHAR AS AI_DOCUMENT_TYPE
-FROM raw_extract;
+    d.DOCUMENT_ID,
+    d.FILE_NAME,
+    d.DOCUMENT_TYPE,
+    d.FILE_SIZE_BYTES,
+    d.FILE_MODIFIED_AT,
+    d.CUSTOMER_ID AS SOURCE_CUSTOMER_ID,
+    d.PARSED_TEXT,
+    SNOWFLAKE.CORTEX.COMPLETE('llama3.1-8b',
+        'You are a document data extraction specialist. ' ||
+        'Extract structured fields from this insurance document and return ONLY a valid JSON object with these exact keys: ' ||
+        'reference_number (the main reference number — claim number or policy number), ' ||
+        'policy_number (the insurance policy number), ' ||
+        'customer_name (full name of the customer or policyholder), ' ||
+        'customer_id (customer ID number as a string), ' ||
+        'document_date (the primary date — date filed for claims, effective date for policies, format YYYY-MM-DD), ' ||
+        'amount (the primary dollar amount — claim amount or annual premium, as a number without $ sign), ' ||
+        'category (Auto, Home, Health, Life, Travel, or Other), ' ||
+        'status (current status if mentioned), ' ||
+        'description (1-2 sentence summary of the document). ' ||
+        'Document text: ' || LEFT(d.PARSED_TEXT, 3000)
+    ) AS EXTRACT_RAW,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(EXTRACT_RAW, '\\{[\\s\\S]*\\}')):reference_number::VARCHAR AS REFERENCE_NUMBER,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(EXTRACT_RAW, '\\{[\\s\\S]*\\}')):policy_number::VARCHAR AS POLICY_NUMBER,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(EXTRACT_RAW, '\\{[\\s\\S]*\\}')):customer_name::VARCHAR AS CUSTOMER_NAME,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(EXTRACT_RAW, '\\{[\\s\\S]*\\}')):customer_id::VARCHAR AS CUSTOMER_ID,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(EXTRACT_RAW, '\\{[\\s\\S]*\\}')):document_date::VARCHAR AS DOCUMENT_DATE,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(EXTRACT_RAW, '\\{[\\s\\S]*\\}')):amount::VARCHAR AS AMOUNT,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(EXTRACT_RAW, '\\{[\\s\\S]*\\}')):category::VARCHAR AS CATEGORY,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(EXTRACT_RAW, '\\{[\\s\\S]*\\}')):status::VARCHAR AS STATUS,
+    TRY_PARSE_JSON(REGEXP_SUBSTR(EXTRACT_RAW, '\\{[\\s\\S]*\\}')):description::VARCHAR AS DESCRIPTION
+FROM AI.DT_DOCUMENT_PARSED d;

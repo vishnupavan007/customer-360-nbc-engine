@@ -14,7 +14,6 @@ entities:
     artifacts:
       - app.py
       - utils.py
-      - pages/0_Health_Check.py
       - pages/1_Customer_360.py
       - pages/2_Churn_Risk.py
       - pages/3_Sentiment.py

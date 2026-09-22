@@ -10,7 +10,7 @@ except Exception as e:
     st.stop()
 
 st.title("Document Intelligence")
-st.caption("AI-powered extraction from insurance claim forms and policy documents using Cortex AI_EXTRACT and AI_PARSE_DOCUMENT")
+st.caption("AI-powered structured extraction from insurance claim forms and policy documents using Cortex AI (llama3.1-8b)")
 
 def run_query(sql):
     return session.sql(sql).to_pandas()
@@ -36,30 +36,45 @@ st.markdown("---")
 
 # -- Extracted Fields Table --
 st.subheader("Extracted Document Fields")
-st.caption("Structured data automatically extracted from unstructured documents using AI_EXTRACT")
+st.caption("Structured data automatically extracted from unstructured documents using Cortex AI")
 
 try:
     doc_type_filter = st.radio("Filter by type:", ["All", "Claim Form", "Policy Summary"], horizontal=True, key="_doc_type")
-    where = ""
-    if doc_type_filter != "All":
-        where = f"WHERE DOCUMENT_TYPE = '{doc_type_filter}'"
 
-    extracted = run_query(f"""
-        SELECT
-            FILE_NAME,
-            DOCUMENT_TYPE,
-            REFERENCE_NUMBER,
-            POLICY_NUMBER,
-            CUSTOMER_NAME,
-            CUSTOMER_ID,
-            AMOUNT,
-            CATEGORY,
-            STATUS,
-            DOCUMENT_DATE
-        FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED
-        {where}
-        ORDER BY FILE_NAME
-    """)
+    filter_map = {"Claim Form": "Claim Form", "Policy Summary": "Policy Summary"}
+    if doc_type_filter in filter_map:
+        extracted = run_query(f"""
+            SELECT
+                FILE_NAME,
+                DOCUMENT_TYPE,
+                REFERENCE_NUMBER,
+                POLICY_NUMBER,
+                CUSTOMER_NAME,
+                CUSTOMER_ID,
+                AMOUNT,
+                CATEGORY,
+                STATUS,
+                DOCUMENT_DATE
+            FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED
+            WHERE DOCUMENT_TYPE = '{filter_map[doc_type_filter]}'
+            ORDER BY FILE_NAME
+        """)
+    else:
+        extracted = run_query("""
+            SELECT
+                FILE_NAME,
+                DOCUMENT_TYPE,
+                REFERENCE_NUMBER,
+                POLICY_NUMBER,
+                CUSTOMER_NAME,
+                CUSTOMER_ID,
+                AMOUNT,
+                CATEGORY,
+                STATUS,
+                DOCUMENT_DATE
+            FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED
+            ORDER BY FILE_NAME
+        """)
     st.dataframe(extracted, use_container_width=True)
 except Exception as e:
     st.error(f"Could not load extracted data: {e}")
@@ -68,7 +83,7 @@ st.markdown("---")
 
 # -- Document Viewer --
 st.subheader("Document Viewer")
-st.caption("Full parsed text from AI_PARSE_DOCUMENT (OCR / layout extraction)")
+st.caption("Full document text from the RAW document store")
 
 try:
     docs = run_query("SELECT FILE_NAME FROM CUSTOMER_360.AI.DT_DOCUMENT_PARSED ORDER BY FILE_NAME")
@@ -92,7 +107,7 @@ st.markdown("---")
 
 # -- Cross-reference with Customer 360 --
 st.subheader("Document-Customer Cross Reference")
-st.caption("Links extracted document customer IDs to the Customer 360 unified profile")
+st.caption("Links document customer IDs to the Customer 360 unified profile and churn risk")
 
 try:
     xref = run_query("""
@@ -101,7 +116,7 @@ try:
             d.DOCUMENT_TYPE,
             d.REFERENCE_NUMBER,
             d.CUSTOMER_NAME AS DOC_CUSTOMER_NAME,
-            d.CUSTOMER_ID AS DOC_CUSTOMER_ID,
+            d.SOURCE_CUSTOMER_ID,
             d.AMOUNT,
             c.FULL_NAME AS C360_NAME,
             c.CUSTOMER_SEGMENT,
@@ -109,9 +124,9 @@ try:
             ROUND(cr.CHURN_RISK_SCORE, 3) AS CHURN_RISK
         FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED d
         LEFT JOIN CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED c
-            ON TRY_CAST(d.CUSTOMER_ID AS NUMBER) = c.CUSTOMER_ID
+            ON d.SOURCE_CUSTOMER_ID = c.CUSTOMER_ID
         LEFT JOIN CUSTOMER_360.AI.DT_CHURN_RISK cr
-            ON TRY_CAST(d.CUSTOMER_ID AS NUMBER) = cr.CUSTOMER_ID
+            ON d.SOURCE_CUSTOMER_ID = cr.CUSTOMER_ID
         ORDER BY d.FILE_NAME
     """)
     st.dataframe(xref, use_container_width=True)
