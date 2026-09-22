@@ -13,9 +13,12 @@ Insurers and lenders struggle to act on fragmented customer data spread across p
 - AI-powered churn risk scoring with explanation of risk factors
 - Call sentiment analysis and summarisation on unstructured transcripts
 - Next Best Action recommendations with channel and priority
+- Document Intelligence: AI_PARSE_DOCUMENT + AI_EXTRACT for insurance claim forms and policy documents
 - Conversational AI advisor for natural-language analytics
 - Cortex Search over 1,450+ interaction records for RAG-based retrieval
 - Semantic view with 9 verified queries for Cortex Analyst
+- Comprehensive health check test suite (78 Streamlit tests + 23 SQL pipeline tests)
+- Global dark/light theme with themed HTML tables
 
 ---
 
@@ -23,9 +26,9 @@ Insurers and lenders struggle to act on fragmented customer data spread across p
 
 ```
 RAW (landing)
-  └── CLEAN (dynamic tables, 1 min lag)
-        └── CURATED (unified 360 view, downstream)
-              └── AI (sentiment, churn, NBA, downstream)
+  └── CLEAN (dynamic tables, DOWNSTREAM lag)
+        └── CURATED (unified 360 view, DOWNSTREAM)
+              └── AI (sentiment, churn, NBA, documents — 5 min lag)
                     └── APP (semantic view, Cortex Search, Streamlit)
 ```
 
@@ -53,6 +56,9 @@ RAW_CALL_TRANS ─┘         │
               │
               ▼
    CUSTOMER_360_SEMANTIC_VIEW + CUSTOMER_360_APP (Streamlit)
+
+DOCUMENT_STAGE ──► DT_DOCUMENT_PARSED (AI_PARSE_DOCUMENT)
+                       └──► DT_DOCUMENT_EXTRACTED (AI_EXTRACT)
 ```
 
 ---
@@ -62,15 +68,19 @@ RAW_CALL_TRANS ─┘         │
 | Schema | Object | Type | Purpose |
 |--------|--------|------|---------|
 | RAW | RAW_CUSTOMERS, RAW_POLICIES, RAW_CLAIMS, RAW_LOANS, RAW_INTERACTIONS, RAW_CALL_TRANSCRIPTS | Tables | Source landing zone |
-| CLEAN | DT_CUSTOMERS, DT_POLICIES, DT_CLAIMS, DT_LOANS, DT_INTERACTIONS, DT_CALL_TRANSCRIPTS | Dynamic Tables (1 min lag) | Dedup, normalise, derive columns |
+| CLEAN | DT_CUSTOMERS, DT_POLICIES, DT_CLAIMS, DT_LOANS, DT_INTERACTIONS, DT_CALL_TRANSCRIPTS | Dynamic Tables (DOWNSTREAM) | Dedup, normalise, derive columns |
 | CURATED | CUSTOMER_360_UNIFIED | Dynamic Table (downstream) | 500-row master 360 record per customer |
 | CURATED | CUSTOMER_INTERACTION_TIMELINE | Dynamic Table (downstream) | Chronological event stream, all touchpoints |
-| AI | DT_TRANSCRIPT_SENTIMENT | Dynamic Table (5 min lag) | Sentiment score + call summary via AI_SENTIMENT + AI_SUMMARIZE |
-| AI | DT_CHURN_RISK | Dynamic Table (downstream) | Churn risk score + risk factors via AI_COMPLETE (llama3.1-8b) |
-| AI | DT_NEXT_BEST_ACTION | Dynamic Table (downstream) | NBA recommendation + channel + rationale via AI_COMPLETE (llama3.1-8b) |
+| AI | DT_TRANSCRIPT_SENTIMENT | Dynamic Table (5 min lag) | Sentiment score + call summary via CORTEX.SENTIMENT + CORTEX.SUMMARIZE |
+| AI | DT_CHURN_RISK | Dynamic Table (5 min lag) | Churn risk score + risk factors via AI_COMPLETE (llama3.1-8b) |
+| AI | DT_NEXT_BEST_ACTION | Dynamic Table (5 min lag) | NBA recommendation + channel + rationale via AI_COMPLETE (llama3.1-8b) |
+| AI | DT_DOCUMENT_PARSED | Dynamic Table (5 min lag) | Full text extraction from documents via AI_PARSE_DOCUMENT |
+| AI | DT_DOCUMENT_EXTRACTED | Dynamic Table (5 min lag) | Structured field extraction from documents via AI_EXTRACT |
 | AI | INTERACTION_SEARCH_SERVICE | Cortex Search Service (1 hr lag) | RAG over 1,450 call transcripts + interaction notes |
 | APP | CUSTOMER_360_SEMANTIC_VIEW | Semantic View | 4 tables, 19 measures, 9 verified queries for Cortex Analyst |
-| APP | CUSTOMER_360_APP | Streamlit App | 5-page dashboard + AI chat advisor |
+| RAW | DOCUMENT_STAGE | Internal Stage | Insurance claim forms and policy documents for AI extraction |
+| APP | CUSTOMER_360_APP | Streamlit App | 8-page dashboard + AI chat advisor |
+| APP | RUN_APP_TESTS | Stored Procedure | 23-test SQL validation suite (CALL CUSTOMER_360.APP.RUN_APP_TESTS()) |
 | APP | CHECK_CHURN_COMPLETENESS, CHECK_NBA_COMPLETENESS, CHECK_CHURN_RANGE, CHECK_SENTIMENT_RANGE | Tasks (daily 8 AM ET) | AI output quality monitoring |
 | APP | PIPELINE_HEALTH_CHECK | Task (every 6 hours) | Pipeline health logging |
 | APP | AI_QUALITY_LOG | Table | Quality check results |
@@ -116,6 +126,13 @@ The project generates realistic, referentially consistent synthetic data — no 
 - Enables semantic search across unstructured interaction history
 - Refreshes incrementally every hour
 
+### Document Intelligence (`DT_DOCUMENT_PARSED` + `DT_DOCUMENT_EXTRACTED`)
+- Uses `AI_PARSE_DOCUMENT` in LAYOUT mode for full text/OCR extraction from insurance documents
+- Uses `AI_EXTRACT` to pull structured fields: reference number, policy number, customer name, amount, category, status
+- Supports claim forms and policy summaries uploaded to `CUSTOMER_360.RAW.DOCUMENT_STAGE`
+- Cross-references extracted customer IDs against the Customer 360 unified profile
+- Both dynamic tables refresh on a 5-minute target lag
+
 ---
 
 ## Semantic View
@@ -143,13 +160,14 @@ The project generates realistic, referentially consistent synthetic data — no 
 | Page | Description |
 |------|-------------|
 | Home (`app.py`) | KPI dashboard: total customers, active, high churn risk, high-priority actions; sentiment distribution and churn-by-segment charts; top action queue |
-| Health Check (`0_Health_Check.py`) | SiS API compatibility tests and data connectivity validation |
+| Health Check (`0_Health_Check.py`) | 78-test suite: SiS API compatibility, data queries, widget patterns, AI function validation, and performance benchmarks |
 | Customer 360 (`1_Customer_360.py`) | Search by name or ID; unified profile with radio-tab navigation (Profile, Policies/Claims, Loans, Interactions) + AI insights panel |
 | Churn Risk (`2_Churn_Risk.py`) | Filterable churn risk dashboard with risk distribution histogram, segment breakdown, and customer detail table |
 | Sentiment (`3_Sentiment.py`) | Sentiment by agent, call reason, and label; negative call drill-down with full transcript viewer |
 | Next Best Action (`4_Next_Best_Action.py`) | Filterable NBA queue by priority and action type; actions-by-type and actions-by-channel charts |
-| AI Advisor (`5_AI_Advisor.py`) | Conversational chat interface; Cortex Agent via SQL with SQL-routing fallback; 10 pre-built example questions |
+| AI Advisor (`5_AI_Advisor.py`) | Conversational chat interface; Cortex Agent via SQL with SQL-routing fallback; 10 pre-built example questions; styled chat bubbles with source badges |
 | Operations (`6_Operations.py`) | Pipeline health: record counts by layer, dynamic table status, task history, DT refresh history |
+| Documents (`7_Documents.py`) | Document Intelligence: KPIs, extracted field browser, full-text document viewer, customer cross-reference |
 
 ---
 
@@ -170,8 +188,10 @@ customer-360-nbc-engine/
 │   │   └── 03_clean_dynamic_tables.sql   # CLEAN layer: 6 dynamic tables
 │   ├── curated/
 │   │   └── 04_curated_dynamic_tables.sql # CURATED layer: unified 360 + timeline
-│   └── ai/
-│       └── 05_ai_enrichment.sql  # AI layer: sentiment, churn, NBA, Cortex Search
+│   ├── ai/
+│   │   └── 05_ai_enrichment.sql  # AI layer: sentiment, churn, NBA, Cortex Search
+│   └── documents/
+│       └── 12_document_processing.sql  # Document AI: AI_PARSE_DOCUMENT + AI_EXTRACT
 │
 ├── serving/                      # Analytical serving layer (evolves independently)
 │   ├── semantic_model/
@@ -182,7 +202,9 @@ customer-360-nbc-engine/
 │
 ├── ops/                          # Operations: monitoring and validation
 │   ├── 08_tasks_and_monitoring.sql  # Scheduled quality monitoring tasks
-│   └── 09_validation.sql         # End-to-end validation queries
+│   ├── 09_validation.sql         # End-to-end validation queries
+│   ├── 10_daily_raw_pipeline.sql  # Daily raw data refresh pipeline
+│   └── 11_app_test_suite.sql     # SQL test suite (23 tests, CALL APP.RUN_APP_TESTS())
 │
 ├── app/                          # Streamlit application (self-contained)
 │   ├── app.py                    # Home dashboard
@@ -190,11 +212,14 @@ customer-360-nbc-engine/
 │   ├── pyproject.toml            # Python package config (streamlit 1.52.2)
 │   ├── environment.yml           # SiS environment (no external packages)
 │   └── pages/
+│       ├── 0_Health_Check.py     # 78-test SiS + data health check suite
 │       ├── 1_Customer_360.py     # Customer search + unified view
 │       ├── 2_Churn_Risk.py       # Churn risk dashboard
 │       ├── 3_Sentiment.py        # Call sentiment analysis
 │       ├── 4_Next_Best_Action.py # NBA recommendations
-│       └── 5_AI_Advisor.py       # AI chat interface
+│       ├── 5_AI_Advisor.py       # AI chat interface
+│       ├── 6_Operations.py       # Pipeline monitoring dashboard
+│       └── 7_Documents.py        # Document Intelligence viewer
 │
 ├── scripts/                      # Deployment + orchestration
 │   ├── run_pipeline.py           # Execute all SQL layers via connector
@@ -290,10 +315,10 @@ Dynamic tables with `TARGET_LAG = DOWNSTREAM` only refresh when queried, not on 
 ## Built With
 
 - Snowflake Dynamic Tables (incremental ETL pipeline)
-- Snowflake Cortex AI: `AI_SENTIMENT`, `AI_SUMMARIZE`, `AI_COMPLETE` (llama3.1-8b)
+- Snowflake Cortex AI: `AI_SENTIMENT`, `AI_SUMMARIZE`, `AI_COMPLETE` (llama3.1-8b), `AI_PARSE_DOCUMENT`, `AI_EXTRACT`
 - Cortex Search Service (semantic search over unstructured interactions)
 - Semantic Views + Cortex Analyst (natural language to SQL)
-- Streamlit-in-Snowflake (5-page dashboard)
+- Streamlit-in-Snowflake (8-page dashboard with dark/light theme)
 - Snowflake CoCo Desktop (planning, development, execution, testing)
 
 ---

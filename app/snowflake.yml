@@ -14,11 +14,13 @@ entities:
     artifacts:
       - app.py
       - utils.py
+      - pages/0_Health_Check.py
       - pages/1_Customer_360.py
       - pages/2_Churn_Risk.py
       - pages/3_Sentiment.py
       - pages/4_Next_Best_Action.py
       - pages/5_AI_Advisor.py
       - pages/6_Operations.py
+      - pages/7_Documents.py
       - pyproject.toml
       - .streamlit/config.toml
