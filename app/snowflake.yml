@@ -21,5 +21,5 @@ entities:
       - pages/5_AI_Advisor.py
       - pages/6_Operations.py
       - pages/7_Documents.py
-      - pyproject.toml
+      - environment.yml
       - .streamlit/config.toml

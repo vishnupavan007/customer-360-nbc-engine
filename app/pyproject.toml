@@ -1,9 +1,0 @@
-[build-system]
-requires = ["setuptools>=42"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "customer-360-app"
-version = "1.0.0"
-requires-python = ">=3.10"
-dependencies = []
