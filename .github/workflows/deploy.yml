@@ -128,3 +128,28 @@ jobs:
       - name: Deploy Streamlit app
         working-directory: app
         run: snow streamlit deploy --replace
+
+      - name: Attach Snowflake PyPI artifact repository (required for container runtime)
+        run: |
+          pip install snowflake-connector-python
+          python - <<'EOF'
+          import os, snowflake.connector
+          conn = snowflake.connector.connect(
+              account=os.environ["SNOWFLAKE_ACCOUNT"],
+              user=os.environ["SNOWFLAKE_USER"],
+              password=os.environ["SNOWFLAKE_PASSWORD"],
+              role="ACCOUNTADMIN",
+              warehouse=os.environ["SNOWFLAKE_WAREHOUSE"],
+          )
+          cur = conn.cursor()
+          try:
+              cur.execute("GRANT DATABASE ROLE SNOWFLAKE.PYPI_REPOSITORY_USER TO ROLE ACCOUNTADMIN")
+          except Exception as e:
+              print(f"Note: {e}")
+          cur.execute("""
+              ALTER STREAMLIT CUSTOMER_360.APP.CUSTOMER_360_APP
+              SET ARTIFACT_REPOSITORIES = (snowflake.snowpark.pypi_shared_repository)
+          """)
+          conn.close()
+          print("Artifact repository attached.")
+          EOF
