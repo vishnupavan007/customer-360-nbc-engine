@@ -22,4 +22,5 @@ entities:
       - pages/6_Operations.py
       - pages/7_Documents.py
       - environment.yml
+      - pyproject.toml
       - .streamlit/config.toml

@@ -1,0 +1,5 @@
+[project]
+name = "customer-360-app"
+version = "1.0.0"
+requires-python = ">=3.8"
+dependencies = []
