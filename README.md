@@ -337,13 +337,4 @@ Dynamic tables with `TARGET_LAG = DOWNSTREAM` only refresh when queried, not on 
 - Streamlit-in-Snowflake (7-page dashboard with dark/light theme)
 - Snowflake CoCo Desktop (planning, development, execution, testing)
 
----
 
-## SiS Compatibility
-
-The Streamlit app runs on the SiS **warehouse runtime** (Streamlit 1.22.0). Several modern Streamlit APIs are not available. See **[SIS_COMPATIBILITY.md](SIS_COMPATIBILITY.md)** for:
-
-- Known issues and workarounds (`st.rerun`, `st.tabs`, `st.chat_message`, network access)
-- API compatibility reference table
-- Migration guide for container runtime
-- Browser test results

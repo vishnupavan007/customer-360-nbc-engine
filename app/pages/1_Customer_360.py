@@ -115,7 +115,6 @@ if search_term:
                 )
                 st.markdown("")
 
-                # Tabs replaced with radio for SiS compatibility (st.tabs requires >= 1.11)
                 active_tab = st.radio(
                     "Section", ["Profile", "Policies & Claims", "Loans", "Interactions"],
                     key=f"tab_{cid}"

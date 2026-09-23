@@ -352,36 +352,32 @@ relationships:
   - name: churn_to_customer
     left_table: CHURN_RISK
     right_table: CUSTOMER_360_UNIFIED
-    join_type: inner
     relationship_type: many_to_one
-    on:
+    relationship_columns:
       - left_column: CUSTOMER_ID
         right_column: CUSTOMER_ID
 
   - name: nba_to_customer
     left_table: NEXT_BEST_ACTION
     right_table: CUSTOMER_360_UNIFIED
-    join_type: inner
     relationship_type: many_to_one
-    on:
+    relationship_columns:
       - left_column: CUSTOMER_ID
         right_column: CUSTOMER_ID
 
   - name: sentiment_to_customer
     left_table: TRANSCRIPT_SENTIMENT
     right_table: CUSTOMER_360_UNIFIED
-    join_type: inner
     relationship_type: many_to_one
-    on:
+    relationship_columns:
       - left_column: CUSTOMER_ID
         right_column: CUSTOMER_ID
 
   - name: nba_to_churn
     left_table: NEXT_BEST_ACTION
     right_table: CHURN_RISK
-    join_type: inner
     relationship_type: one_to_one
-    on:
+    relationship_columns:
       - left_column: CUSTOMER_ID
         right_column: CUSTOMER_ID
 

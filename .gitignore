@@ -11,4 +11,8 @@ output/
 # IDE
 .vscode/
 .idea/
-.snowflake/
+
+# Snowflake CoCo — ignore plans/cache but track skills
+.snowflake/cortex/plans/
+.snowflake/cortex/cache/
+.snowflake/*.json
