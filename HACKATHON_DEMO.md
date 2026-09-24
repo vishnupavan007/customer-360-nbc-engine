@@ -12,7 +12,7 @@ Schedule an unattended daily digest that runs every weekday morning via CoCo CLI
 
 ```bash
 cortex automation create \
-  --name "daily-churn-alert" \
+  --name "daily_churn_alert" \
   --schedule "0 9 * * 1-5" \
   --prompt "Run the pipeline-health-snapshot skill and then find any customers whose churn risk score is above 0.8 in CUSTOMER_360.AI.DT_CHURN_RISK. Join to CUSTOMER_360.AI.DT_NEXT_BEST_ACTION. List the top 5 highest-risk customers with their name, segment, churn score, and next best action. Format as a brief daily digest with a one-line status summary at the top."
 ```
@@ -24,20 +24,20 @@ cortex automation create \
 cortex automation list
 
 # View run logs
-cortex automation logs daily-churn-alert
+cortex automation logs daily_churn_alert
 
 # Pause / resume
-cortex automation suspend daily-churn-alert
-cortex automation resume  daily-churn-alert
+cortex automation suspend daily_churn_alert
+cortex automation resume  daily_churn_alert
 
 # Delete
-cortex automation delete daily-churn-alert
+cortex automation delete daily_churn_alert
 ```
 
 ### Upgrade: post digest to Slack (after Phase 5 MCP is configured)
 
 ```bash
-cortex automation update daily-churn-alert \
+cortex automation update daily_churn_alert \
   --prompt "Run the pipeline-health-snapshot skill. Then query CUSTOMER_360.AI.DT_CHURN_RISK joined to CUSTOMER_360.AI.DT_NEXT_BEST_ACTION and find the top 5 customers with churn score > 0.8. Post the results as a formatted daily digest to the Slack channel #customer-360-alerts. Include today's date in the sign-off."
 ```
 
@@ -168,6 +168,6 @@ All three hit the same `CUSTOMER_360_AGENT` backed by `Customer360SemanticView` 
 | Document processing | `DT_DOCUMENT_EXTRACTED` (CORTEX.COMPLETE), `INTERACTION_SEARCH_SERVICE` |
 | MCP connectors | Slack MCP — Phase 5 above |
 | Reusable skills | `customer-360-snapshot`, `nba-campaign-report`, `pipeline-health-snapshot` |
-| Automations | `daily-churn-alert` automation — Phase 4 above |
+| Automations | `daily_churn_alert` automation — Phase 4 above |
 | Cross-surface | CoCo Desktop / CoCo CLI / Snowsight Cloud Agents — Phase 6 above |
 | Guardrails | AI Advisor 3-tier routing, domain guard, `RUN_APP_TESTS()` 23-test suite |
