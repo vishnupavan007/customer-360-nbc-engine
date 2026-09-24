@@ -261,7 +261,7 @@ $$;
 -- =========================================================================
 CREATE OR REPLACE TASK CUSTOMER_360.RAW.TASK_DAILY_RAW_INGEST
     WAREHOUSE = COMPUTE_WH
-    SCHEDULE  = 'USING CRON 0 0 * * * UTC'
+    SCHEDULE  = 'USING CRON 0 */6 * * * UTC'
     COMMENT   = 'Daily synthetic data ingestion for Customer 360 pipeline'
 AS
     CALL CUSTOMER_360.RAW.SP_DAILY_SYNTHETIC_DATA(20);

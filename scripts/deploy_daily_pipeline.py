@@ -80,7 +80,7 @@ def deploy(suspend=False):
         task_sql = (
             "CREATE OR REPLACE TASK CUSTOMER_360.RAW.TASK_DAILY_RAW_INGEST\n"
             "    WAREHOUSE = COMPUTE_WH\n"
-            "    SCHEDULE  = 'USING CRON 0 0 * * * UTC'\n"
+            "    SCHEDULE  = 'USING CRON 0 */6 * * * UTC'\n"
             "    COMMENT   = 'Daily synthetic data ingestion for Customer 360 pipeline'\n"
             f"AS\n    CALL {PROC_FQN}(20)"
         )
@@ -89,7 +89,7 @@ def deploy(suspend=False):
         if not suspend:
             run_sql(cur, f"ALTER TASK {TASK_FQN} RESUME", "RESUME task")
             print(f"\nTask {TASK_FQN} is ACTIVE.")
-            print("  Schedule : daily at midnight UTC (CRON 0 0 * * *)")
+            print("  Schedule : every 6 hours UTC (CRON 0 */6 * * *)")
             print("  Batch    : 20 new customers + proportional records per run")
         else:
             print(f"\nTask {TASK_FQN} created but left SUSPENDED.")
