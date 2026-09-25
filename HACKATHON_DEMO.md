@@ -1,6 +1,51 @@
 # Hackathon Demo Guide
 
-Operational reference for the three CoCo ingenuity additions: automation, Slack MCP, and cross-surface demo.
+Operational reference for all CoCo demo phases: planning, automation, Slack MCP, skill publishing, and cross-surface demo.
+
+---
+
+## Phase 1 — Planning: CoCo-Driven Exploration Before Build
+
+Show that CoCo was used to explore the problem space and design the solution before any code was written.
+
+### Step 1: Explore schema with CoCo CLI
+
+```bash
+# Discover what tables exist in the raw layer
+snow sql --connection ivvnigo-ds76948 -q "SHOW TABLES IN SCHEMA CUSTOMER_360.RAW"
+
+# Profile a key table
+snow sql --connection ivvnigo-ds76948 -q "SELECT COUNT(*), MIN(CREATED_AT), MAX(CREATED_AT) FROM CUSTOMER_360.RAW.RAW_CUSTOMERS"
+```
+
+### Step 2: Frame the problem with Cortex Complete
+
+```bash
+snow cortex complete \
+  --connection ivvnigo-ds76948 \
+  --query "Design a data model for a unified Customer 360 platform in insurance and lending. The platform needs to track churn risk, next best action, call sentiment, and document intelligence. Suggest a medallion architecture with RAW, CLEAN, CURATED, and AI layers." \
+  --model llama3.1-70b
+```
+
+### Step 3: Validate the semantic model with natural language
+
+After the semantic view is deployed, confirm the model answers planning questions:
+
+```bash
+# Via CoCo Desktop chat:
+"What are the top 5 customers by churn risk and their recommended next actions?"
+"How many Premium customers have open claims and a churn score above 0.7?"
+"What is the average sentiment score by customer segment?"
+```
+
+### Step 4: Verify everything is working with the pipeline health skill
+
+```bash
+# Run the published skill from CoCo Desktop chat:
+/pipeline-health-snapshot
+```
+
+Expected: HEALTHY status with all 23 tests passing.
 
 ---
 
@@ -61,22 +106,32 @@ Connect CoCo Desktop to Slack so the Cortex Agent can post NBA alerts directly t
 
 ### Step 2: Configure MCP in CoCo Desktop
 
-1. Open **CoCo Desktop → Settings → MCP Servers → Add server**
-2. Add this configuration (replace token and team ID):
+The credentials are stored in `.env` (gitignored).
 
-```json
-{
-  "name": "slack",
-  "command": "npx",
-  "args": ["-y", "@modelcontextprotocol/server-slack"],
-  "env": {
-    "SLACK_BOT_TOKEN": "xoxb-your-token-here",
-    "SLACK_TEAM_ID": "T0000000000"
-  }
-}
+CoCo Desktop requires a **remote (SSE/HTTP) URL** for MCP servers — it does not run local stdio processes directly. Use `supergateway` to bridge the Slack MCP stdio server to an SSE endpoint.
+
+**Step 2a — Start the local MCP bridge (keep this terminal open before every demo):**
+
+Open a new PowerShell terminal and run:
+
+```powershell
+$env:SLACK_BOT_TOKEN="xoxb-YOUR-SLACK-BOT-TOKEN"
+$env:SLACK_TEAM_ID="T0C3X6E9W3Y"
+npx -y supergateway --stdio "npx -y @modelcontextprotocol/server-slack" --port 8808
 ```
 
-3. Save and restart CoCo Desktop. Slack tools (`slack_post_message`, `slack_list_channels`) will appear in the tool list.
+Wait until you see `Listening on port 8808`. Leave the terminal open.
+
+**Step 2b — Add the server in CoCo Desktop:**
+
+1. Open **CoCo Desktop → Settings → MCP Servers → Add server**
+2. Enter URL: `http://localhost:8808`
+3. Click **Save** and restart CoCo Desktop.
+
+Slack tools (`slack_post_message`, `slack_list_channels`) will appear in the tool list.
+
+4. Verify by asking CoCo: `"List my Slack channels"` — it should return the available channels including `#customer-360-alerts`.
+
 
 ### Step 3: Test the integration
 
