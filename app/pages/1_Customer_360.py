@@ -116,7 +116,7 @@ if search_term:
                 st.markdown("")
 
                 active_tab = st.radio(
-                    "Section", ["Profile", "Policies & Claims", "Loans", "Interactions"],
+                    "Section", ["Profile", "Policies & Claims", "Loans", "Interactions", "Documents"],
                     key=f"tab_{cid}"
                 )
 
@@ -174,6 +174,20 @@ if search_term:
                     )
                     if timeline is not None and not timeline.empty:
                         render_df(timeline)
+
+                elif active_tab == "Documents":
+                    docs = safe_sql(
+                        f"SELECT FILE_NAME, DOCUMENT_TYPE, REFERENCE_NUMBER, AMOUNT, CATEGORY, STATUS"
+                        f" FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED"
+                        f" WHERE TRY_CAST(CUSTOMER_ID AS NUMBER) = {cid}"
+                        f" ORDER BY FILE_MODIFIED_AT DESC LIMIT 20",
+                        "documents"
+                    )
+                    if docs is not None and not docs.empty:
+                        st.metric("Documents on File", len(docs))
+                        render_df(docs)
+                    else:
+                        st.info("No documents found for this customer.")
 
                 # ── AI Insights ──────────────────────────────────────────
                 churn_nba = safe_sql(
