@@ -23,7 +23,7 @@ def safe_metric(query, column="CNT", default=0):
 st.title("Customer 360 — Next Best Action Engine")
 st.caption("Unified insurance and lending customer intelligence powered by Snowflake Cortex AI")
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.metric("Total Customers",
               f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED'):,}")
@@ -36,6 +36,9 @@ with col3:
 with col4:
     q = "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_NEXT_BEST_ACTION WHERE PRIORITY = 'High'"
     st.metric("High Priority Actions", f"{safe_metric(q):,}")
+with col5:
+    st.metric("Documents Processed",
+              f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED'):,}")
 
 st.markdown("---")
 

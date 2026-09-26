@@ -115,8 +115,7 @@ try:
             d.FILE_NAME,
             d.DOCUMENT_TYPE,
             d.REFERENCE_NUMBER,
-            d.CUSTOMER_NAME AS DOC_CUSTOMER_NAME,
-            d.SOURCE_CUSTOMER_ID,
+            d.CUSTOMER_ID AS DOC_CUSTOMER_ID,
             d.AMOUNT,
             c.FULL_NAME AS C360_NAME,
             c.CUSTOMER_SEGMENT,
@@ -124,9 +123,9 @@ try:
             ROUND(cr.CHURN_RISK_SCORE, 3) AS CHURN_RISK
         FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED d
         LEFT JOIN CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED c
-            ON d.SOURCE_CUSTOMER_ID = c.CUSTOMER_ID
+            ON TRY_CAST(d.CUSTOMER_ID AS NUMBER) = c.CUSTOMER_ID
         LEFT JOIN CUSTOMER_360.AI.DT_CHURN_RISK cr
-            ON d.SOURCE_CUSTOMER_ID = cr.CUSTOMER_ID
+            ON TRY_CAST(d.CUSTOMER_ID AS NUMBER) = cr.CUSTOMER_ID
         ORDER BY d.FILE_NAME
     """)
     st.dataframe(xref, use_container_width=True)
