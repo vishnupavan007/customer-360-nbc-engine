@@ -55,6 +55,7 @@ search_term = st.text_input("Search by customer name or ID", placeholder="e.g. R
 VALID_SEGMENTS = {"Basic", "Standard", "Premium", "VIP"}
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def safe_sql(query, error_label="data"):
     try:
         return session.sql(query).to_pandas()

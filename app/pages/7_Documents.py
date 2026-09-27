@@ -12,6 +12,7 @@ except Exception as e:
 st.title("Document Intelligence")
 st.caption("AI-powered structured extraction from insurance claim forms and policy documents using Cortex AI (llama3.1-8b)")
 
+@st.cache_data(ttl=300, show_spinner=False)
 def run_query(sql):
     return session.sql(sql).to_pandas()
 

@@ -28,11 +28,13 @@ st.title("Operations Dashboard")
 st.caption("Pipeline health, record counts, and refresh status across all layers")
 
 if st.button("Refresh Data", type="primary"):
+    st.cache_data.clear()
     st.rerun()
 st.caption(f"Loaded at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 st.markdown("---")
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def safe_sql(query, error_label="data"):
     try:
         return session.sql(query).to_pandas()

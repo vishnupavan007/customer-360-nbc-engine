@@ -53,6 +53,7 @@ seg_placeholders = ", ".join([f"'{s}'" for s in safe_selected])
 risk_min_val = float(risk_min)
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def safe_sql(query, error_label="data"):
     try:
         return session.sql(query).to_pandas()

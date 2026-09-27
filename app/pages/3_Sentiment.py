@@ -18,6 +18,7 @@ st.title("Call Sentiment Analysis")
 st.caption("AI-powered sentiment insights from customer call transcripts")
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def safe_sql(query, error_label="data"):
     try:
         return session.sql(query).to_pandas()
