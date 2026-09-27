@@ -95,6 +95,8 @@ if search_term:
     if customers is None or customers.empty:
         st.warning("No customers found.")
     else:
+        if len(customers) >= 20:
+            st.caption("Showing first 20 results. Refine your search for more specific results.")
         for _, row in customers.iterrows():
             cid = int(row["CUSTOMER_ID"])
             seg = row["CUSTOMER_SEGMENT"]
@@ -150,6 +152,8 @@ if search_term:
                     )
                     if claims is not None and not claims.empty:
                         render_df(claims)
+                        if len(claims) >= 10:
+                            st.caption("Showing latest 10 claims.")
 
                 elif active_tab == "Loans":
                     l1, l2, l3 = st.columns(3)
@@ -165,6 +169,8 @@ if search_term:
                     )
                     if loans is not None and not loans.empty:
                         render_df(loans)
+                        if len(loans) >= 10:
+                            st.caption("Showing latest 10 loans.")
 
                 elif active_tab == "Interactions":
                     timeline = safe_sql(
