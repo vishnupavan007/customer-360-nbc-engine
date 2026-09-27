@@ -148,18 +148,18 @@ PROBES = [
      "SELECT SNOWFLAKE.CORTEX.COMPLETE('mistral-7b', 'What is 2+2? Reply with one word.') AS REPLY",
      1, "Prediction LLM call succeeds", True),
 
-    # ── Page 9: Data Lineage ──────────────────────────────────────────────────
-    (9, "Data Lineage", "DT pipeline count",
-     "SELECT COUNT(*) AS TOTAL_DTS FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('CLEAN','CURATED','AI') AND TABLE_TYPE = 'BASE TABLE'",
-     1, "Dynamic tables present in pipeline schemas", False),
+    # ── Page 9 merged into Operations — check new tabs ───────────────────────
+    (6, "Operations", "Governance tab: masking policies",
+     "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.INFORMATION_SCHEMA.MASKING_POLICIES",
+     1, "Governance tab: masking policies exist", False),
 
-    (9, "Data Lineage", "Layer size totals",
-     "SELECT TABLE_SCHEMA, SUM(ROW_COUNT) AS TOTAL_ROWS FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('RAW','CLEAN','CURATED','AI','APP') GROUP BY 1",
-     1, "Layer row count aggregation runs", False),
+    (6, "Operations", "AI Quality tab: dashboard view",
+     "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA='APP' AND TABLE_NAME ILIKE '%AI%QUALITY%'",
+     1, "AI Quality tab: dashboard view exists", False),
 
-    (9, "Data Lineage", "Full table inventory",
-     "SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('RAW','CLEAN','CURATED','AI','APP') ORDER BY 1, 2",
-     1, "Full table inventory renders", False),
+    (6, "Operations", "Lineage tab: full object inventory",
+     "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('RAW','CLEAN','CURATED','AI','APP')",
+     1, "Lineage tab: object inventory renders", False),
 ]
 
 # ─── Runner ──────────────────────────────────────────────────────────────────
@@ -285,10 +285,9 @@ if st.session_state.probe_results:
         "Sentiment":         "💬 Sentiment",
         "Next Best Action":  "🎯 Next Best Action",
         "AI Advisor":        "🤖 AI Advisor",
-        "Operations":        "⚙️ Operations",
+        "Operations":        "⚙️ Operations & Lineage",
         "Documents":         "📄 Documents",
         "What-If Simulator": "🔮 What-If Simulator",
-        "Data Lineage":      "🔗 Data Lineage",
     }
 
     for page_name, probes in pages.items():

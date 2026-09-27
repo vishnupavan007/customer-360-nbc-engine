@@ -22,7 +22,6 @@ entities:
       - pages/6_Operations.py
       - pages/7_Documents.py
       - pages/8_What_If.py
-      - pages/9_Data_Lineage.py
       - pages/10_App_Health.py
       - environment.yml
       - pyproject.toml

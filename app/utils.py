@@ -215,4 +215,4 @@ def theme_sidebar():
     new   = st.toggle(label, value=prev, key="_global_theme")
     if new != prev:
         st.session_state.dark_mode = new
-        st.experimental_rerun()
+        st.rerun()
