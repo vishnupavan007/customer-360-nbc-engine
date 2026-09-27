@@ -82,9 +82,7 @@ try:
             ORDER BY FILE_NAME
         """)
     render_df(extracted)
-    if not extracted.empty:
-        csv = extracted.to_csv(index=False)
-        st.download_button("Download CSV", csv, "extracted_documents.csv", "text/csv", key="dl_extracted_docs")
+
 except Exception as e:
     st.error(f"Could not load extracted data: {e}")
 
