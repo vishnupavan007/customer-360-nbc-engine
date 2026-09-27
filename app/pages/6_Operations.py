@@ -277,45 +277,82 @@ with tab2:
 with tab3:
     st.subheader("Governance Coverage")
 
-    gov = safe_sql("""
-        SELECT
-            (SELECT COUNT(*) FROM CUSTOMER_360.INFORMATION_SCHEMA.MASKING_POLICIES)   AS MASKING_POLICIES,
-            (SELECT COUNT(*) FROM CUSTOMER_360.INFORMATION_SCHEMA.ROW_ACCESS_POLICIES) AS ROW_ACCESS_POLICIES
-    """, "governance")
-
-    if not gov.empty:
+    # ── Masking Policies ────────────────────────────────────────────────────
+    try:
+        mp_rows = session.sql("SHOW MASKING POLICIES IN DATABASE CUSTOMER_360").collect()
+        mp_records = []
+        for row in mp_rows:
+            try:
+                mp_records.append({
+                    "POLICY_NAME":   str(row["name"]),
+                    "SCHEMA":        str(row["schema_name"]),
+                    "CREATED_ON":    row["created_on"],
+                })
+            except Exception:
+                pass
         g1, g2 = st.columns(2)
-        g1.metric("Masking Policies",     int(gov["MASKING_POLICIES"].iloc[0]))
-        g2.metric("Row Access Policies",  int(gov["ROW_ACCESS_POLICIES"].iloc[0]))
+        g1.metric("Masking Policies", len(mp_records))
 
-    st.markdown("---")
-    st.subheader("Masking Policy Details")
+        st.markdown("---")
+        st.subheader("Masking Policy Details")
+        if mp_records:
+            render_df(pd.DataFrame(mp_records))
+        else:
+            st.info("No masking policies found in CUSTOMER_360.")
+    except Exception as e:
+        st.error(f"Could not load masking policies: {e}")
 
-    mp = safe_sql("""
-        SELECT POLICY_NAME, POLICY_SCHEMA, POLICY_CATALOG, LAST_ALTERED
-        FROM CUSTOMER_360.INFORMATION_SCHEMA.MASKING_POLICIES
-        ORDER BY POLICY_NAME
-    """, "masking policies")
+    # ── Row Access Policies ─────────────────────────────────────────────────
+    try:
+        rap_rows = session.sql("SHOW ROW ACCESS POLICIES IN DATABASE CUSTOMER_360").collect()
+        rap_records = []
+        for row in rap_rows:
+            try:
+                rap_records.append({
+                    "POLICY_NAME":   str(row["name"]),
+                    "SCHEMA":        str(row["schema_name"]),
+                    "CREATED_ON":    row["created_on"],
+                })
+            except Exception:
+                pass
+        # fill second metric now we have the count
+        try:
+            g2.metric("Row Access Policies", len(rap_records))
+        except Exception:
+            pass
 
-    if not mp.empty:
-        render_df(mp)
-    else:
-        st.info("No masking policies found.")
+        st.markdown("---")
+        st.subheader("Row Access Policies")
+        if rap_records:
+            render_df(pd.DataFrame(rap_records))
+        else:
+            st.info("No row access policies found in CUSTOMER_360.")
+    except Exception as e:
+        st.error(f"Could not load row access policies: {e}")
 
+    # ── PII Tags ────────────────────────────────────────────────────────────
     st.markdown("---")
     st.subheader("PII Tag Coverage")
-
-    pii = safe_sql("""
-        SELECT TAG_NAME, TAG_SCHEMA, TAG_CATALOG, COMMENT
-        FROM CUSTOMER_360.INFORMATION_SCHEMA.TAGS
-        WHERE TAG_NAME ILIKE '%PII%'
-        ORDER BY TAG_NAME
-    """, "PII tags")
-
-    if not pii.empty:
-        render_df(pii)
-    else:
-        st.info("No PII tags found.")
+    try:
+        tag_rows = session.sql("SHOW TAGS IN DATABASE CUSTOMER_360").collect()
+        pii_records = []
+        for row in tag_rows:
+            try:
+                name = str(row["name"])
+                if "PII" in name.upper() or "DATA_DOMAIN" in name.upper():
+                    pii_records.append({
+                        "TAG_NAME":   name,
+                        "SCHEMA":     str(row["schema_name"]),
+                        "CREATED_ON": row["created_on"],
+                    })
+            except Exception:
+                pass
+        if pii_records:
+            render_df(pd.DataFrame(pii_records))
+        else:
+            st.info("No PII or DATA_DOMAIN tags found.")
+    except Exception as e:
+        st.error(f"Could not load tags: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

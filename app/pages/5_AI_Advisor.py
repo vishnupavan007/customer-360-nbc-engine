@@ -315,7 +315,7 @@ with st.sidebar:
         st.session_state.dataframes = {}
         st.session_state.msg_source = {}
         st.session_state.last_route = ""
-        st.experimental_rerun()
+        st.rerun()
     st.divider()
     st.markdown("**Quick examples**")
     for q in [
@@ -327,7 +327,7 @@ with st.sidebar:
     ]:
         if st.button(q, key=q, use_container_width=True):
             st.session_state.messages.append({"role":"user","content":q})
-            st.experimental_rerun()
+            st.rerun()
 
 
 # ── Header ────────────────────────────────────────────────────────────────────
@@ -413,7 +413,7 @@ with st.form("chat_form", clear_on_submit=True):
 
 if sent and user_q and user_q.strip():
     st.session_state.messages.append({"role":"user","content":user_q.strip()})
-    st.experimental_rerun()
+    st.rerun()
 
 # ── Suggestion chips ──────────────────────────────────────────────────────────
 st.markdown("**Quick questions:**")
@@ -428,7 +428,7 @@ for col, (icon, text) in zip(cols, CHIPS):
     with col:
         if st.button(f"{icon}  {text}", use_container_width=True, key=f"chip_{text}"):
             st.session_state.messages.append({"role":"user","content":text})
-            st.experimental_rerun()
+            st.rerun()
 
 # ── Generate response ─────────────────────────────────────────────────────────
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
@@ -439,7 +439,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         st.session_state.messages.append({"role":"assistant","content":_REFUSE})
         st.session_state.msg_source[out_idx] = "guard"
         st.session_state.last_route          = "guard"
-        st.experimental_rerun()
+        st.rerun()
 
     # Fast path: known SQL patterns bypass the agent (~1s)
     if _is_sql_fast(last_q):
@@ -451,7 +451,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         st.session_state.last_route          = src
         if df is not None:
             st.session_state.dataframes[out_idx] = df
-        st.experimental_rerun()
+        st.rerun()
 
     # Slow path: try Cortex Agent (20s), fall back to SQL on failure
     with st.spinner("Asking Cortex Agent..."):
@@ -474,4 +474,4 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         if df is not None:
             st.session_state.dataframes[out_idx] = df
 
-    st.experimental_rerun()
+    st.rerun()
