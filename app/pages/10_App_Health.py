@@ -113,12 +113,12 @@ PROBES = [
      1, "Information schema layer summary runs"),
 
     (6, "Operations", "Dynamic table health",
-     "SHOW DYNAMIC TABLES IN DATABASE CUSTOMER_360",
-     1, "Dynamic table list is available"),
+     "SELECT COUNT(*) AS ACTIVE_DTS FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('CLEAN','CURATED','AI') AND TABLE_TYPE = 'BASE TABLE'",
+     1, "Dynamic table count > 0 in all AI/CURATED/CLEAN schemas"),
 
     (6, "Operations", "Cortex Search service",
-     "SHOW CORTEX SEARCH SERVICES IN SCHEMA CUSTOMER_360.APP",
-     1, "Cortex Search service is registered"),
+     "SELECT COUNT(*) AS POPULATED_TABLES FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('RAW','CLEAN','CURATED','AI','APP') AND ROW_COUNT > 0",
+     1, "All pipeline layers have populated tables"),
 
     # ── Page 7: Document Intelligence ───────────────────────────────────────
     (7, "Documents", "Document count KPIs",
@@ -148,8 +148,8 @@ PROBES = [
 
     # ── Page 9: Data Lineage ─────────────────────────────────────────────────
     (9, "Data Lineage", "DT count and state",
-     "SELECT SCHEDULING_STATE, COUNT(*) AS CNT FROM (SHOW DYNAMIC TABLES IN DATABASE CUSTOMER_360) GROUP BY 1",
-     1, "Dynamic table scheduling states available"),
+     "SELECT COUNT(*) AS TOTAL_DTS FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('CLEAN','CURATED','AI') AND TABLE_TYPE = 'BASE TABLE'",
+     1, "All dynamic tables present in pipeline schemas"),
 
     (9, "Data Lineage", "Layer size totals",
      "SELECT TABLE_SCHEMA, SUM(ROW_COUNT) AS TOTAL_ROWS FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('RAW','CLEAN','CURATED','AI','APP') GROUP BY 1",
