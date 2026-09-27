@@ -139,6 +139,16 @@ BEGIN
     tid := 33; SELECT COUNT(DISTINCT EVENT_CATEGORY) INTO :cnt FROM CUSTOMER_360.CURATED.CUSTOMER_INTERACTION_TIMELINE;
     INSERT INTO _tr SELECT :tid, 'Data Quality', 'Timeline: 6 event categories', CASE WHEN :cnt >= 6 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' categories (need >= 6)', :cnt;
 
+    -- Page 10: App Health — validate the probe queries it uses are runnable
+    tid := 34; SELECT COUNT(*) INTO :cnt FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('CLEAN','CURATED','AI') AND TABLE_TYPE = 'BASE TABLE';
+    INSERT INTO _tr SELECT :tid, 'App Health', 'DT probe query runs', CASE WHEN :cnt >= 14 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' DTs (need >= 14)', :cnt;
+
+    tid := 35; SELECT COUNT(*) INTO :cnt FROM CUSTOMER_360.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN ('RAW','CLEAN','CURATED','AI','APP') AND ROW_COUNT > 0;
+    INSERT INTO _tr SELECT :tid, 'App Health', 'All layers populated', CASE WHEN :cnt >= 20 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' populated tables', :cnt;
+
+    tid := 36; SELECT COUNT(*) INTO :cnt FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED WHERE TOTAL_DOCUMENTS > 0;
+    INSERT INTO _tr SELECT :tid, 'App Health', 'Doc-customer cross-ref probe', CASE WHEN :cnt > 0 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' customers with docs', :cnt;
+
     LET rs RESULTSET := (SELECT * FROM _tr ORDER BY TEST_ID);
     RETURN TABLE(rs);
 END;
