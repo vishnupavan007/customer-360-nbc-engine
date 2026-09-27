@@ -12,17 +12,17 @@ Show that CoCo was used to explore the problem space and design the solution bef
 
 ```bash
 # Discover what tables exist in the raw layer
-snow sql --connection ivvnigo-ds76948 -q "SHOW TABLES IN SCHEMA CUSTOMER_360.RAW"
+snow sql --connection customer360 -q "SHOW TABLES IN SCHEMA CUSTOMER_360.RAW"
 
 # Profile a key table
-snow sql --connection ivvnigo-ds76948 -q "SELECT COUNT(*), MIN(CREATED_AT), MAX(CREATED_AT) FROM CUSTOMER_360.RAW.RAW_CUSTOMERS"
+snow sql --connection customer360 -q "SELECT COUNT(*), MIN(CREATED_AT), MAX(CREATED_AT) FROM CUSTOMER_360.RAW.RAW_CUSTOMERS"
 ```
 
 ### Step 2: Frame the problem with Cortex Complete
 
 ```bash
 snow cortex complete \
-  --connection ivvnigo-ds76948 \
+  --connection customer360 \
   --query "Design a data model for a unified Customer 360 platform in insurance and lending. The platform needs to track churn risk, next best action, call sentiment, and document intelligence. Suggest a medallion architecture with RAW, CLEAN, CURATED, and AI layers." \
   --model llama3.1-70b
 ```
@@ -45,11 +45,11 @@ After the semantic view is deployed, confirm the model answers planning question
 /pipeline-health-snapshot
 ```
 
-Expected: HEALTHY status with all 23 tests passing.
+Expected: HEALTHY status with all 33 tests passing.
 
 ---
 
-## Phase 4 — CoCo Automation: Daily Churn Alert
+## Phase 2 — CoCo Automation: Daily Churn Alert
 
 Schedule an unattended daily digest that runs every weekday morning via CoCo CLI.
 
@@ -79,7 +79,7 @@ cortex automation resume  daily_churn_alert
 cortex automation delete daily_churn_alert
 ```
 
-### Upgrade: post digest to Slack (after Phase 5 MCP is configured)
+### Upgrade: post digest to Slack (after Phase 3 MCP is configured)
 
 ```bash
 cortex automation update daily_churn_alert \
@@ -88,7 +88,7 @@ cortex automation update daily_churn_alert \
 
 ---
 
-## Phase 5 — Slack MCP Connector
+## Phase 3 — Slack MCP Connector
 
 Connect CoCo Desktop to Slack so the Cortex Agent can post NBA alerts directly to a channel.
 
@@ -158,7 +158,7 @@ CoCo will:
 
 ---
 
-## Phase 6 — Cross-Surface Demo Script
+## Phase 4 — Cross-Surface Demo Script
 
 The Cortex Agent `CUSTOMER_360.APP.CUSTOMER_360_AGENT` works identically across all three surfaces. No code changes needed.
 
@@ -216,13 +216,16 @@ All three hit the same `CUSTOMER_360_AGENT` backed by `Customer360SemanticView` 
 
 | Criterion | How demonstrated |
 |-----------|-----------------|
-| Synthetic data | `SP_DAILY_SYNTHETIC_DATA` + `TASK_DAILY_RAW_INGEST` (daily midnight UTC) |
-| Data pipeline | 13 dynamic tables, medallion architecture, 5 quality monitoring tasks |
-| Semantic model | `Customer360SemanticView` with 9 verified Cortex Analyst queries |
-| Streamlit app | 7-page SiS app at `CUSTOMER_360.APP.CUSTOMER_360_APP` |
-| Document processing | `DT_DOCUMENT_EXTRACTED` (CORTEX.COMPLETE), `INTERACTION_SEARCH_SERVICE` |
-| MCP connectors | Slack MCP — Phase 5 above |
+| Synthetic data | `SP_DAILY_SYNTHETIC_DATA` + `TASK_DAILY_RAW_INGEST` (every 6 hours) |
+| Data pipeline | 14 dynamic tables, medallion architecture, 5 quality tasks + 3 proactive alerts |
+| Semantic model | `Customer360SemanticView` with 5 tables, 10 verified queries |
+| Streamlit app | 10-page SiS app with What-If simulator, data lineage, CSV export |
+| Document processing | `DT_DOCUMENT_EXTRACTED` (CORTEX.COMPLETE), cross-referenced to Customer 360 |
+| AI enrichment | CORTEX.SENTIMENT, SUMMARIZE, COMPLETE, TRANSLATE + Health Score |
+| Governance | Masking policies, row access policy, PII tags, DMFs, resource monitor |
+| MCP connectors | Slack MCP — Phase 3 above |
 | Reusable skills | `customer-360-snapshot`, `nba-campaign-report`, `pipeline-health-snapshot` |
-| Automations | `daily_churn_alert` automation — Phase 4 above |
-| Cross-surface | CoCo Desktop / CoCo CLI / Snowsight Cloud Agents — Phase 6 above |
-| Guardrails | AI Advisor 3-tier routing, domain guard, `RUN_APP_TESTS()` 23-test suite |
+| Automations | `daily_churn_alert` automation — Phase 2 above |
+| Cross-surface | CoCo Desktop / CoCo CLI / Snowsight Cloud Agents — Phase 4 above |
+| Guardrails | AI Advisor 3-tier routing, domain guard, `RUN_APP_TESTS()` 33-test suite |
+| Security | SQL injection, XSS escaping, masking, RAP, SIS_COMPATIBILITY.md |
