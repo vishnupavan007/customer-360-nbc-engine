@@ -3,6 +3,7 @@ from snowflake.snowpark.context import get_active_session
 from utils import apply_theme, theme_sidebar
 import datetime
 import re
+import html as _html
 
 st.set_page_config(page_title="AI Advisor", page_icon="🤖", layout="wide")
 apply_theme()
@@ -92,7 +93,7 @@ def _df_to_html(df, dark=False):
         row_bg = alt_bg if idx % 2 else bg
         td_style = (f"padding:6px 12px;font-size:0.8rem;color:{text_col};"
                     f"border-bottom:1px solid {border}")
-        cells = "".join(f"<td style='{td_style}'>{row[c]}</td>" for c in cols)
+        cells = "\n".join(f"<td style='{td_style}'>{_html.escape(str(row[c]))}</td>" for c in cols)
         rows_html.append(f"<tr style='background:{row_bg}'>{cells}</tr>")
 
     return (
@@ -374,7 +375,7 @@ else:
                 f'<div class="bubble-u">'
                 f'<span style="float:right;font-size:0.67rem;opacity:0.5">{now}</span>'
                 f'<div class="who">You</div>'
-                f'<div class="txt">{msg["content"]}</div>'
+                f'<div class="txt">{_html.escape(msg["content"])}</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
