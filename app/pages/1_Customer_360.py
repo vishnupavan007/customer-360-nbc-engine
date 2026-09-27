@@ -55,6 +55,7 @@ search_term = st.text_input("Search by customer name or ID", placeholder="e.g. R
 VALID_SEGMENTS = {"Basic", "Standard", "Premium", "VIP"}
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def safe_sql(query, error_label="data"):
     try:
         return session.sql(query).to_pandas()
@@ -78,7 +79,7 @@ if search_term:
             "customer search"
         )
     else:
-        name_safe = "".join(c for c in search_stripped if c.isalnum() or c in " -.'")
+        name_safe = "".join(c for c in search_stripped if c.isalnum() or c in " -.")
         customers = safe_sql(
             f"SELECT c.CUSTOMER_ID, c.FULL_NAME, c.EMAIL, c.PHONE, c.CUSTOMER_SEGMENT,"
             f" c.CITY, c.STATE, c.COUNTRY, c.AGE, c.CREDIT_SCORE, c.ANNUAL_INCOME,"

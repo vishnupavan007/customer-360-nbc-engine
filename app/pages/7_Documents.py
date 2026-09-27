@@ -12,6 +12,7 @@ except Exception as e:
 st.title("Document Intelligence")
 st.caption("AI-powered structured extraction from insurance claim forms and policy documents using Cortex AI (llama3.1-8b)")
 
+@st.cache_data(ttl=300, show_spinner=False)
 def run_query(sql):
     return session.sql(sql).to_pandas()
 
@@ -93,7 +94,7 @@ try:
             content = run_query(f"""
                 SELECT PARSED_TEXT, DOCUMENT_TYPE, FILE_SIZE_BYTES
                 FROM CUSTOMER_360.AI.DT_DOCUMENT_PARSED
-                WHERE FILE_NAME = '{selected}'
+                WHERE FILE_NAME = '{selected.replace(chr(39), chr(39)+chr(39))}'
             """)
             if not content.empty:
                 mc1, mc2 = st.columns(2)
