@@ -150,8 +150,8 @@ PROBES = [
 
     # ── Page 9 merged into Operations — check new tabs ───────────────────────
     (6, "Operations", "Governance tab: masking policies",
-     "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.INFORMATION_SCHEMA.MASKING_POLICIES",
-     1, "Governance tab: masking policies exist", False),
+     "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.APP.ROLE_REGION_MAPPING",
+     1, "Governance tab: row-access mapping table exists", False),
 
     (6, "Operations", "AI Quality tab: dashboard view",
      "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA='APP' AND TABLE_NAME ILIKE '%AI%QUALITY%'",
