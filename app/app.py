@@ -14,9 +14,11 @@ except Exception as e:
 with st.sidebar:
     theme_sidebar()
 
+@st.cache_data(ttl=300, show_spinner=False)
 def run_query(query):
     return session.sql(query).to_pandas()
 
+@st.cache_data(ttl=300, show_spinner=False)
 def safe_metric(query, column="CNT", default=0):
     try:
         df = run_query(query)
@@ -27,19 +29,23 @@ def safe_metric(query, column="CNT", default=0):
 st.title("Customer 360 — Next Best Action Engine")
 st.caption("Unified insurance and lending customer intelligence powered by Snowflake Cortex AI")
 
-col1, col2, col3, col4 = st.columns(4)
-with col1:
+with st.spinner("Loading dashboard..."):
+  col1, col2, col3, col4, col5 = st.columns(5)
+  with col1:
     st.metric("Total Customers",
               f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED'):,}")
-with col2:
+  with col2:
     st.metric("Active Customers",
               f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED WHERE IS_ACTIVE = TRUE'):,}")
-with col3:
+  with col3:
     st.metric("High Churn Risk",
               f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_CHURN_RISK WHERE CHURN_RISK_SCORE >= 0.7'):,}")
-with col4:
+  with col4:
     q = "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_NEXT_BEST_ACTION WHERE PRIORITY = 'High'"
     st.metric("High Priority Actions", f"{safe_metric(q):,}")
+  with col5:
+    st.metric("Documents Processed",
+              f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED'):,}")
 
 st.markdown("---")
 
@@ -72,6 +78,21 @@ with right:
         st.bar_chart(sentiment.set_index("SENTIMENT_LABEL"))
     except Exception as e:
         st.error(str(e))
+
+st.markdown("---")
+st.subheader("Customer Onboarding Trend")
+try:
+    onboard = run_query("""
+        SELECT DATE_TRUNC('MONTH', CREATED_AT) AS MONTH,
+               COUNT(*) AS NEW_CUSTOMERS
+        FROM CUSTOMER_360.CLEAN.DT_CUSTOMERS
+        GROUP BY MONTH
+        ORDER BY MONTH
+    """)
+    if not onboard.empty:
+        st.line_chart(onboard.set_index("MONTH"))
+except Exception as e:
+    st.error(str(e))
 
 st.markdown("---")
 st.subheader("Top Action Items")
