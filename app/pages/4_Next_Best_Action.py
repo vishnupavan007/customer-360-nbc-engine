@@ -160,6 +160,4 @@ if actions is not None:
             return "color:#66BB6A"
         except: return ""
     render_df(actions, col_styles={"PRIORITY": _pri_style, "CHURN_RISK": _risk_style})
-    if not actions.empty:
-        csv = actions.to_csv(index=False)
-        st.download_button("Download CSV", csv, "action_queue.csv", "text/csv", key="dl_action_queue")
+
