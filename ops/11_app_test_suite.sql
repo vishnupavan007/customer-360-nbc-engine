@@ -103,6 +103,42 @@ BEGIN
     tid := 23; SELECT COUNT(*) INTO :cnt FROM CUSTOMER_360.AI.DT_TRANSCRIPT_SENTIMENT WHERE SENTIMENT_SCORE < -1 OR SENTIMENT_SCORE > 1;
     INSERT INTO _tr SELECT :tid, 'Data Quality', 'Sentiment range [-1,1]', CASE WHEN :cnt=0 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' violations', :cnt;
 
+    -- Document data tests
+    tid := 24; SELECT COUNT(*) INTO :cnt FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED;
+    INSERT INTO _tr SELECT :tid, 'Document', 'Documents exist', CASE WHEN :cnt > 0 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' documents', :cnt;
+
+    tid := 25; SELECT COUNT(*) INTO :cnt FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED WHERE TOTAL_DOCUMENTS > 0;
+    INSERT INTO _tr SELECT :tid, 'Document', 'Customer cross-reference', CASE WHEN :cnt > 0 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' customers with docs', :cnt;
+
+    tid := 26; SELECT COUNT(*) INTO :cnt FROM CUSTOMER_360.CURATED.CUSTOMER_INTERACTION_TIMELINE WHERE EVENT_CATEGORY = 'Document';
+    INSERT INTO _tr SELECT :tid, 'Document', 'Timeline includes documents', CASE WHEN :cnt > 0 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' doc events', :cnt;
+
+    -- AI Quality tests
+    tid := 27; SELECT ROUND(COUNT(CASE WHEN CHURN_RISK_SCORE IS NULL THEN 1 END)*100.0/NULLIF(COUNT(*),0),1) INTO :val FROM CUSTOMER_360.AI.DT_CHURN_RISK;
+    INSERT INTO _tr SELECT :tid, 'AI Quality', 'Churn parse success', CASE WHEN :val < 5 THEN 'PASS' ELSE 'FAIL' END, :val || '% null scores (need < 5%)', :val;
+
+    tid := 28; SELECT ROUND(COUNT(CASE WHEN ACTION_TYPE IS NULL THEN 1 END)*100.0/NULLIF(COUNT(*),0),1) INTO :val FROM CUSTOMER_360.AI.DT_NEXT_BEST_ACTION;
+    INSERT INTO _tr SELECT :tid, 'AI Quality', 'NBA parse success', CASE WHEN :val < 5 THEN 'PASS' ELSE 'FAIL' END, :val || '% null actions (need < 5%)', :val;
+
+    -- Data Governance tests
+    tid := 29; SHOW MASKING POLICIES IN DATABASE CUSTOMER_360; SELECT COUNT(*) INTO :cnt FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()));
+    INSERT INTO _tr SELECT :tid, 'Governance', 'Masking policies exist', CASE WHEN :cnt > 0 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' policies', :cnt;
+
+    tid := 30; SHOW TAGS IN DATABASE CUSTOMER_360; SELECT COUNT(*) INTO :cnt FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) WHERE "name" ILIKE '%PII%';
+    INSERT INTO _tr SELECT :tid, 'Governance', 'PII tags exist', CASE WHEN :cnt > 0 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' PII tags', :cnt;
+
+    -- Agent test
+    tid := 31; SHOW AGENTS IN DATABASE CUSTOMER_360; SELECT COUNT(*) INTO :cnt FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) WHERE "name" = 'CUSTOMER_360_AGENT';
+    INSERT INTO _tr SELECT :tid, 'Agent', 'Agent exists', CASE WHEN :cnt > 0 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' agent(s)', :cnt;
+
+    -- Infrastructure: AI quality dashboard view
+    tid := 32; SELECT COUNT(*) INTO :cnt FROM CUSTOMER_360.INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA = 'APP' AND TABLE_NAME ILIKE '%AI%QUALITY%';
+    INSERT INTO _tr SELECT :tid, 'Infrastructure', 'AI quality dashboard view', CASE WHEN :cnt > 0 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' view(s)', :cnt;
+
+    -- Timeline completeness: 6 event categories including Document
+    tid := 33; SELECT COUNT(DISTINCT EVENT_CATEGORY) INTO :cnt FROM CUSTOMER_360.CURATED.CUSTOMER_INTERACTION_TIMELINE;
+    INSERT INTO _tr SELECT :tid, 'Data Quality', 'Timeline: 6 event categories', CASE WHEN :cnt >= 6 THEN 'PASS' ELSE 'FAIL' END, :cnt || ' categories (need >= 6)', :cnt;
+
     LET rs RESULTSET := (SELECT * FROM _tr ORDER BY TEST_ID);
     RETURN TABLE(rs);
 END;
