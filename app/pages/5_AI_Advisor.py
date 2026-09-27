@@ -289,7 +289,7 @@ def sql_fallback(question):
         except Exception as e: return f"Error: {e}", None, False
 
     try:
-        sq = "".join(c for c in question if c.isalnum() or c in " .,?-_'")[:500].replace("'","''")
+        sq = "".join(c for c in question if c.isalnum() or c in " .,?-_")[:500].replace("'","''")
         res = session.sql(
             f"SELECT SNOWFLAKE.CORTEX.COMPLETE('llama3.1-8b',"
             f"'You are a Customer 360 advisor for SecureLife insurance. "
