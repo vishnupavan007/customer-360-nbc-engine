@@ -315,6 +315,61 @@ tables:
         data_type: NUMBER
         description: Call duration in seconds.
 
+  - name: DOCUMENT_EXTRACTED
+    base_table:
+      database: CUSTOMER_360
+      schema: AI
+      table: DT_DOCUMENT_EXTRACTED
+    description: AI-extracted structured fields from insurance documents (claims, policies).
+
+    dimensions:
+      - name: FILE_NAME
+        expr: FILE_NAME
+        data_type: VARCHAR
+        description: Name of the source document file.
+      - name: DOCUMENT_TYPE
+        expr: DOCUMENT_TYPE
+        data_type: VARCHAR
+        description: Type of document (Claim Form, Policy Summary).
+      - name: REFERENCE_NUMBER
+        expr: REFERENCE_NUMBER
+        data_type: VARCHAR
+        description: Primary reference number extracted from the document.
+      - name: POLICY_NUMBER
+        expr: POLICY_NUMBER
+        data_type: VARCHAR
+        description: Policy number mentioned in the document.
+      - name: CUSTOMER_NAME
+        expr: CUSTOMER_NAME
+        data_type: VARCHAR
+        description: Customer name extracted from the document.
+      - name: CUSTOMER_ID
+        expr: CUSTOMER_ID
+        data_type: VARCHAR
+        description: Customer ID extracted from document text.
+      - name: CATEGORY
+        expr: CATEGORY
+        data_type: VARCHAR
+        description: Insurance category (Auto, Home, Health, Life, Travel).
+      - name: STATUS
+        expr: STATUS
+        data_type: VARCHAR
+        description: Document or claim status.
+      - name: DESCRIPTION
+        expr: DESCRIPTION
+        data_type: VARCHAR
+        description: AI-generated summary of the document.
+
+    measures:
+      - name: TOTAL_DOCUMENTS
+        expr: FILE_NAME
+        aggregate: count
+        description: Total number of processed documents.
+      - name: AMOUNT
+        expr: AMOUNT
+        data_type: VARCHAR
+        description: Primary dollar amount from the document.
+
 relationships:
   - name: churn_to_customer
     left_table: CHURN_RISK
@@ -344,6 +399,14 @@ relationships:
     left_table: NEXT_BEST_ACTION
     right_table: CHURN_RISK
     relationship_type: one_to_one
+    relationship_columns:
+      - left_column: CUSTOMER_ID
+        right_column: CUSTOMER_ID
+
+  - name: document_to_customer
+    left_table: DOCUMENT_EXTRACTED
+    right_table: CUSTOMER_360_UNIFIED
+    relationship_type: many_to_one
     relationship_columns:
       - left_column: CUSTOMER_ID
         right_column: CUSTOMER_ID
@@ -448,3 +511,11 @@ verified_queries:
       WHERE MAX_DAYS_PAST_DUE >= 90
       GROUP BY CUSTOMER_SEGMENT
       ORDER BY customer_count DESC
+
+  - name: documents_by_type
+    question: How many documents have been processed by document type?
+    sql: >
+      SELECT DOCUMENT_TYPE, COUNT(*) AS document_count
+      FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED
+      GROUP BY DOCUMENT_TYPE
+      ORDER BY document_count DESC

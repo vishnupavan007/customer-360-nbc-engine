@@ -148,7 +148,7 @@ _DOMAIN = {
     "loan","loans","premium","segment","segments","sentiment","action","actions",
     "complaint","complaints","escalation","interactions","retention","vip",
     "basic","standard","score","transcript","insurance","lending","billing",
-    "coverage","payment","nba","next best","360","securelife","call",
+    "coverage","payment","nba","next best","360","securelife","call","document","documents",
     "robert","lisa","david","donald","dorothy","kenji","barbara","sarah","joseph",
     "tanaka","ramirez","harris","smith","martin","singh","jones","miller","brown",
 }
@@ -206,6 +206,7 @@ _SQL_PATTERNS = [
     ({"claim"},                  {"churn","risk"}),
     ({"premium"},                {"high","risk"}),
     ({"complaint"},              None),
+    ({"document"},               None),
 ]
 
 def _is_sql_fast(q):
@@ -281,6 +282,15 @@ def sql_fallback(question):
             return f"**{len(df)} customers** have more than 2 complaints:", df, True
         except Exception as e: return f"Error: {e}", None, False
 
+    if "document" in q:
+        try:
+            df = run("""SELECT FILE_NAME, DOCUMENT_TYPE, REFERENCE_NUMBER, CUSTOMER_NAME,
+                CUSTOMER_ID, AMOUNT, CATEGORY, STATUS
+                FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED
+                ORDER BY FILE_MODIFIED_AT DESC LIMIT 20""")
+            return f"**{len(df)} documents** processed:", df, True
+        except Exception as e: return f"Error: {e}", None, False
+
     try:
         sq = "".join(c for c in question if c.isalnum() or c in " .,?-_")[:500].replace("'","''")
         res = session.sql(
@@ -305,7 +315,7 @@ with st.sidebar:
         st.session_state.dataframes = {}
         st.session_state.msg_source = {}
         st.session_state.last_route = ""
-        st.rerun()
+        st.experimental_rerun()
     st.divider()
     st.markdown("**Quick examples**")
     for q in [
@@ -317,7 +327,7 @@ with st.sidebar:
     ]:
         if st.button(q, key=q, use_container_width=True):
             st.session_state.messages.append({"role":"user","content":q})
-            st.rerun()
+            st.experimental_rerun()
 
 
 # ── Header ────────────────────────────────────────────────────────────────────
@@ -403,7 +413,7 @@ with st.form("chat_form", clear_on_submit=True):
 
 if sent and user_q and user_q.strip():
     st.session_state.messages.append({"role":"user","content":user_q.strip()})
-    st.rerun()
+    st.experimental_rerun()
 
 # ── Suggestion chips ──────────────────────────────────────────────────────────
 st.markdown("**Quick questions:**")
@@ -418,7 +428,7 @@ for col, (icon, text) in zip(cols, CHIPS):
     with col:
         if st.button(f"{icon}  {text}", use_container_width=True, key=f"chip_{text}"):
             st.session_state.messages.append({"role":"user","content":text})
-            st.rerun()
+            st.experimental_rerun()
 
 # ── Generate response ─────────────────────────────────────────────────────────
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
@@ -429,7 +439,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         st.session_state.messages.append({"role":"assistant","content":_REFUSE})
         st.session_state.msg_source[out_idx] = "guard"
         st.session_state.last_route          = "guard"
-        st.rerun()
+        st.experimental_rerun()
 
     # Fast path: known SQL patterns bypass the agent (~1s)
     if _is_sql_fast(last_q):
@@ -441,7 +451,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         st.session_state.last_route          = src
         if df is not None:
             st.session_state.dataframes[out_idx] = df
-        st.rerun()
+        st.experimental_rerun()
 
     # Slow path: try Cortex Agent (20s), fall back to SQL on failure
     with st.spinner("Asking Cortex Agent..."):
@@ -464,4 +474,4 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         if df is not None:
             st.session_state.dataframes[out_idx] = df
 
-    st.rerun()
+    st.experimental_rerun()
