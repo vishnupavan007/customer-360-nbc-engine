@@ -1,5 +1,6 @@
 """Shared theme utilities — import on every page."""
 import streamlit as st
+import html as _html
 
 # ── Dark mode colour tokens ────────────────────────────────────────────────────
 _D = dict(
@@ -43,7 +44,7 @@ def _df_to_html(df, dark=False, col_styles=None):
                 extra = col_styles[c](val)
             td = (f"padding:7px 14px;font-size:0.82rem;color:{text_col};"
                   f"border-bottom:1px solid {border};{extra}")
-            cells.append(f"<td style='{td}'>{val}</td>")
+            cells.append(f"<td style='{td}'>{_html.escape(str(val))}</td>")
         rows_html.append(f"<tr style='background:{row_bg}'>{''.join(cells)}</tr>")
 
     return (
