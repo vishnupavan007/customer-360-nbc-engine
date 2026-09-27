@@ -11,7 +11,7 @@ USE WAREHOUSE COMPUTE_WH;
 -- Uses SNOWFLAKE.CORTEX.SENTIMENT and SNOWFLAKE.CORTEX.SUMMARIZE
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE AI.DT_TRANSCRIPT_SENTIMENT
-  TARGET_LAG = '5 minutes'
+  TARGET_LAG = '60 minutes'
   WAREHOUSE = COMPUTE_WH
 AS
 WITH scored AS (
@@ -51,7 +51,7 @@ FROM scored;
 -- Uses SNOWFLAKE.CORTEX.COMPLETE for structured JSON risk assessment
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE AI.DT_CHURN_RISK
-  TARGET_LAG = '5 minutes'
+  TARGET_LAG = '60 minutes'
   WAREHOUSE = COMPUTE_WH
 AS
 WITH latest_sentiment AS (
@@ -123,7 +123,7 @@ LEFT JOIN latest_sentiment s ON c.CUSTOMER_ID = s.CUSTOMER_ID;
 -- Combines churn risk + sentiment + profile for personalized recommendations
 -- =========================================================================
 CREATE OR REPLACE DYNAMIC TABLE AI.DT_NEXT_BEST_ACTION
-  TARGET_LAG = '5 minutes'
+  TARGET_LAG = '60 minutes'
   WAREHOUSE = COMPUTE_WH
 AS
 WITH latest_call AS (

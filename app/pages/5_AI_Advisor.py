@@ -164,43 +164,35 @@ def badge(src):
     return f'<span class="bd {c}">{t}</span>' if t else ""
 
 
-# ── Agent call (REST, 20s timeout, last 6 turns) ──────────────────────────────
-@st.cache_resource
-def _ssl_ctx():
-    import ssl
-    return ssl.create_default_context()
-
-
+# ── Agent call (SQL-based Cortex Complete, SiS-compatible) ─────────────────────
 def call_agent(messages):
     try:
-        import json, urllib.request
-        try:    raw = session._conn._conn
-        except: raw = session.connection
-        host, token = raw.host, raw.rest.token
-        url = (f"https://{host}/api/v2/databases/CUSTOMER_360/schemas/APP"
-               "/agents/CUSTOMER_360_AGENT:run")
         recent = messages[-6:]
-        api_msgs = []
+        prompt_parts = []
         for m in recent:
-            c = m["content"]
-            if isinstance(c, str): c = [{"type":"text","text":c}]
-            api_msgs.append({"role":m["role"],"content":c})
-        body = json.dumps({"messages":api_msgs,"stream":False}).encode()
-        req  = urllib.request.Request(url, body, method="POST",
-               headers={"Authorization":f'Snowflake Token="{token}"',
-                        "Content-Type":"application/json","Accept":"application/json"})
-        with urllib.request.urlopen(req, context=_ssl_ctx(), timeout=20) as r:
-            data = json.loads(r.read().decode())
-        text = ""
-        if "content" in data and isinstance(data["content"], list):
-            for item in data["content"]:
-                if isinstance(item, dict) and item.get("type") == "text":
-                    text += item.get("text","")
-        elif "choices" in data and data["choices"]:
-            text = data["choices"][0].get("message",{}).get("content","")
-        else:
-            text = str(data)
-        return (text, True) if text else ("No response.", False)
+            role = "User" if m["role"] == "user" else "Assistant"
+            prompt_parts.append(f"{role}: {m['content']}")
+        conversation = "\n".join(prompt_parts)
+
+        safe_conv = conversation.replace("'", "''")[:4000]
+
+        system_prompt = (
+            "You are a Customer 360 AI Advisor for SecureLife insurance. "
+            "Answer questions about customers, churn risk, policies, claims, loans, sentiment, "
+            "documents, and next best actions. Use specific data when possible. "
+            "If you cannot answer from your knowledge, say so clearly."
+        )
+
+        result = session.sql(f"""
+            SELECT SNOWFLAKE.CORTEX.COMPLETE(
+                'llama3.1-70b',
+                CONCAT('{system_prompt.replace("'", "''")}', '\n\n', '{safe_conv}', '\nAssistant:')
+            ) AS RESPONSE
+        """).collect()
+
+        if result and result[0]["RESPONSE"]:
+            return (str(result[0]["RESPONSE"]), True)
+        return ("No response.", False)
     except Exception as e:
         return (f"Agent error: {e}", False)
 
@@ -289,7 +281,7 @@ def sql_fallback(question):
         except Exception as e: return f"Error: {e}", None, False
 
     try:
-        sq = "".join(c for c in question if c.isalnum() or c in " .,?-_'")[:500].replace("'","''")
+        sq = "".join(c for c in question if c.isalnum() or c in " .,?-_")[:500].replace("'","''")
         res = session.sql(
             f"SELECT SNOWFLAKE.CORTEX.COMPLETE('llama3.1-8b',"
             f"'You are a Customer 360 advisor for SecureLife insurance. "

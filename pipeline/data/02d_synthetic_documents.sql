@@ -15,13 +15,13 @@ FROM VALUES
 
 -- ── Claim Forms (10 documents) ──────────────────────────────────────────────
 
-(1, 1737747, 'Claim Form', 'claim_form_CLM-2024-00142.txt',
+(1, 2680824, 'Claim Form', 'claim_form_CLM-2024-00142.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00142
 Policy Number: POL-00023
-Customer Name: Fang Mahmoud
-Customer ID: 1737747
+Customer Name: Neha Nakamura
+Customer ID: 2680824
 Date Filed: 2024-08-15
 Claim Type: Auto
 Claim Amount: $8,500.00
@@ -33,13 +33,13 @@ Rear-end collision on Highway 101 during evening commute. The insured vehicle (2
 Adjuster Notes:
 Liability appears clear — third party at fault. Subrogation potential high. Recommend expedited processing.'),
 
-(2, 4527636, 'Claim Form', 'claim_form_CLM-2024-00215.txt',
+(2, 2305832, 'Claim Form', 'claim_form_CLM-2024-00215.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00215
 Policy Number: POL-00056
-Customer Name: Alexander Abdullah
-Customer ID: 4527636
+Customer Name: Lucas Yamamoto
+Customer ID: 2305832
 Date Filed: 2024-09-03
 Claim Type: Home
 Claim Amount: $22,750.00
@@ -51,13 +51,13 @@ Water damage from burst pipe in upstairs bathroom. Flooding affected master bedr
 Adjuster Notes:
 Cause confirmed as sudden pipe burst (covered peril). No evidence of gradual leak. Customer has filed supporting receipts for temporary accommodation ($1,200). Recommend approval with standard deductible.'),
 
-(3, 4335629, 'Claim Form', 'claim_form_CLM-2024-00318.txt',
+(3, 2114382, 'Claim Form', 'claim_form_CLM-2024-00318.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00318
 Policy Number: POL-00112
-Customer Name: Alejandro Qureshi
-Customer ID: 4335629
+Customer Name: Sophia Kobayashi
+Customer ID: 2114382
 Date Filed: 2024-07-22
 Claim Type: Medical
 Claim Amount: $4,200.00
@@ -69,13 +69,13 @@ Emergency room visit following workplace injury — laceration to left forearm r
 Adjuster Notes:
 Medical records verified. All charges within usual and customary rates. Approved for full claim amount minus $500 deductible. Payment issued 2024-08-10.'),
 
-(4, 1798364, 'Claim Form', 'claim_form_CLM-2024-00401.txt',
+(4, 3722032, 'Claim Form', 'claim_form_CLM-2024-00401.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00401
 Policy Number: POL-00178
-Customer Name: Mohammed Iyer
-Customer ID: 1798364
+Customer Name: Sophia Hussain
+Customer ID: 3722032
 Date Filed: 2024-10-01
 Claim Type: Auto
 Claim Amount: $3,100.00
@@ -87,13 +87,13 @@ Windshield and side mirror damaged by flying debris on Interstate 35 during seve
 Adjuster Notes:
 Comprehensive coverage applies. No deductible for windshield in this state. Side mirror replacement quoted at $850 (OEM). Straightforward claim.'),
 
-(5, 3589459, 'Claim Form', 'claim_form_CLM-2024-00489.txt',
+(5, 3504367, 'Claim Form', 'claim_form_CLM-2024-00489.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00489
 Policy Number: POL-00234
-Customer Name: Ling Ito
-Customer ID: 3589459
+Customer Name: Lucas Lambert
+Customer ID: 3504367
 Date Filed: 2024-06-18
 Claim Type: Theft
 Claim Amount: $15,000.00
@@ -105,13 +105,13 @@ Reported theft of personal electronics and jewelry from home while on vacation. 
 Adjuster Notes:
 Investigation revealed no signs of forced entry. Security system was not armed at time of reported theft. Denied due to insufficient evidence and policy exclusion for unsecured premises.'),
 
-(6, 4484529, 'Claim Form', 'claim_form_CLM-2024-00523.txt',
+(6, 4112313, 'Claim Form', 'claim_form_CLM-2024-00523.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00523
 Policy Number: POL-00045
-Customer Name: Aria Mehta
-Customer ID: 4484529
+Customer Name: Aria Nash
+Customer ID: 4112313
 Date Filed: 2024-11-10
 Claim Type: Natural Disaster
 Claim Amount: $45,000.00
@@ -123,13 +123,13 @@ Roof and siding damage from Category 2 hurricane. Multiple roof shingles torn of
 Adjuster Notes:
 Area declared federal disaster zone. High volume of claims in region. Field inspection scheduled for 2024-11-18. Prioritize processing.'),
 
-(7, 3007226, 'Claim Form', 'claim_form_CLM-2024-00567.txt',
+(7, 660795, 'Claim Form', 'claim_form_CLM-2024-00567.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00567
 Policy Number: POL-00289
-Customer Name: Divya Graham
-Customer ID: 3007226
+Customer Name: Donna Garcia
+Customer ID: 660795
 Date Filed: 2024-05-30
 Claim Type: Medical
 Claim Amount: $12,800.00
@@ -141,13 +141,13 @@ Scheduled knee replacement surgery at hospital. Pre-authorization obtained (Auth
 Adjuster Notes:
 All pre-authorization requirements met. Surgery performed by in-network provider. Settled at $11,500 after network negotiation. Customer co-pay: $1,300. Closed.'),
 
-(8, 1051727, 'Claim Form', 'claim_form_CLM-2024-00612.txt',
+(8, 393315, 'Claim Form', 'claim_form_CLM-2024-00612.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00612
 Policy Number: POL-00098
-Customer Name: Jackson Suzuki
-Customer ID: 1051727
+Customer Name: Linda Chen
+Customer ID: 393315
 Date Filed: 2024-09-25
 Claim Type: Property Damage
 Claim Amount: $6,750.00
@@ -159,13 +159,13 @@ Fire damage to kitchen caused by electrical fault in dishwasher. Fire department
 Adjuster Notes:
 Fire marshal report on file. No negligence. Coverage confirmed. Approved at $6,750. Depreciation waived per replacement cost endorsement.'),
 
-(9, 3309161, 'Claim Form', 'claim_form_CLM-2024-00698.txt',
+(9, 1381509, 'Claim Form', 'claim_form_CLM-2024-00698.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00698
 Policy Number: POL-00201
-Customer Name: Alexander Hayes
-Customer ID: 3309161
+Customer Name: James Mehta
+Customer ID: 1381509
 Date Filed: 2024-08-05
 Claim Type: Auto
 Claim Amount: $19,500.00
@@ -177,13 +177,13 @@ Total loss — vehicle (2021 BMW 3 Series) struck by uninsured driver running re
 Adjuster Notes:
 Uninsured motorist coverage applies. Vehicle valued at $28,000 (KBB). Salvage value $8,500. Payout calculated at $19,500. Rental car authorized for 30 days.'),
 
-(10, 2120504, 'Claim Form', 'claim_form_CLM-2024-00745.txt',
+(10, 1312971, 'Claim Form', 'claim_form_CLM-2024-00745.txt',
 'INSURANCE CLAIM FORM
 ====================
 Claim Number: CLM-2024-00745
 Policy Number: POL-00315
-Customer Name: Henry Kobayashi
-Customer ID: 2120504
+Customer Name: Emma Nash
+Customer ID: 1312971
 Date Filed: 2024-10-20
 Claim Type: Home
 Claim Amount: $9,200.00
@@ -197,12 +197,12 @@ Sewer backup endorsement confirmed on policy. Customer has documented inventory 
 
 -- ── Policy Summaries (10 documents) ─────────────────────────────────────────
 
-(11, 1737747, 'Policy Summary', 'policy_summary_POL-00023.txt',
+(11, 2680824, 'Policy Summary', 'policy_summary_POL-00023.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00023
-Customer Name: Fang Mahmoud
-Customer ID: 1737747
+Customer Name: Neha Nakamura
+Customer ID: 2680824
 Policy Type: Auto
 Effective Date: 2024-01-15
 Expiration Date: 2025-01-15
@@ -222,12 +222,12 @@ Coverage Details:
 Underwriting Notes:
 Clean driving record (5+ years). Multi-policy discount applied. Loyalty discount: 15%.'),
 
-(12, 4527636, 'Policy Summary', 'policy_summary_POL-00056.txt',
+(12, 2305832, 'Policy Summary', 'policy_summary_POL-00056.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00056
-Customer Name: Alexander Abdullah
-Customer ID: 4527636
+Customer Name: Lucas Yamamoto
+Customer ID: 2305832
 Policy Type: Home
 Effective Date: 2024-03-01
 Expiration Date: 2025-03-01
@@ -246,12 +246,12 @@ Coverage Details:
 Underwriting Notes:
 Property built 2005, well-maintained. Security system installed (5% discount). Roof replaced 2020. No prior claims in 3 years.'),
 
-(13, 4335629, 'Policy Summary', 'policy_summary_POL-00112.txt',
+(13, 2114382, 'Policy Summary', 'policy_summary_POL-00112.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00112
-Customer Name: Alejandro Qureshi
-Customer ID: 4335629
+Customer Name: Sophia Kobayashi
+Customer ID: 2114382
 Policy Type: Health
 Effective Date: 2024-01-01
 Expiration Date: 2024-12-31
@@ -270,12 +270,12 @@ Coverage Details:
 Underwriting Notes:
 Non-smoker. No pre-existing conditions. Family plan (spouse + 2 dependents).'),
 
-(14, 1798364, 'Policy Summary', 'policy_summary_POL-00178.txt',
+(14, 3722032, 'Policy Summary', 'policy_summary_POL-00178.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00178
-Customer Name: Mohammed Iyer
-Customer ID: 1798364
+Customer Name: Sophia Hussain
+Customer ID: 3722032
 Policy Type: Auto
 Effective Date: 2024-06-01
 Expiration Date: 2025-06-01
@@ -294,12 +294,12 @@ Coverage Details:
 Underwriting Notes:
 One minor at-fault accident in 2022. Vehicle: 2023 Ford Explorer. Good student discount for dependent driver.'),
 
-(15, 3589459, 'Policy Summary', 'policy_summary_POL-00234.txt',
+(15, 3504367, 'Policy Summary', 'policy_summary_POL-00234.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00234
-Customer Name: Ling Ito
-Customer ID: 3589459
+Customer Name: Lucas Lambert
+Customer ID: 3504367
 Policy Type: Home
 Effective Date: 2024-04-15
 Expiration Date: 2025-04-15
@@ -319,12 +319,12 @@ Coverage Details:
 Underwriting Notes:
 Coastal property — elevated hurricane risk. Property built 2010 with hurricane straps. Two prior claims in 5 years. Higher deductible to offset premium.'),
 
-(16, 4484529, 'Policy Summary', 'policy_summary_POL-00045.txt',
+(16, 4112313, 'Policy Summary', 'policy_summary_POL-00045.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00045
-Customer Name: Aria Mehta
-Customer ID: 4484529
+Customer Name: Aria Nash
+Customer ID: 4112313
 Policy Type: Home
 Effective Date: 2024-02-01
 Expiration Date: 2025-02-01
@@ -343,12 +343,12 @@ Coverage Details:
 Underwriting Notes:
 Long-tenure customer (8+ years). Property built 1998, renovated 2019. Bundled with auto policy (12% discount). Claims-free for 4 years prior to current claim.'),
 
-(17, 3007226, 'Policy Summary', 'policy_summary_POL-00289.txt',
+(17, 660795, 'Policy Summary', 'policy_summary_POL-00289.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00289
-Customer Name: Divya Graham
-Customer ID: 3007226
+Customer Name: Donna Garcia
+Customer ID: 660795
 Policy Type: Health
 Effective Date: 2024-01-01
 Expiration Date: 2024-12-31
@@ -367,12 +367,12 @@ Coverage Details:
 Underwriting Notes:
 Premium plan. Non-smoker. Pre-existing: managed hypertension (controlled). Family plan.'),
 
-(18, 1051727, 'Policy Summary', 'policy_summary_POL-00098.txt',
+(18, 393315, 'Policy Summary', 'policy_summary_POL-00098.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00098
-Customer Name: Jackson Suzuki
-Customer ID: 1051727
+Customer Name: Linda Chen
+Customer ID: 393315
 Policy Type: Life
 Effective Date: 2023-06-01
 Expiration Date: 2043-06-01
@@ -392,12 +392,12 @@ Coverage Details:
 Underwriting Notes:
 Non-smoker, excellent health. Occupation: Software Engineer (preferred class).'),
 
-(19, 3309161, 'Policy Summary', 'policy_summary_POL-00201.txt',
+(19, 1381509, 'Policy Summary', 'policy_summary_POL-00201.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00201
-Customer Name: Alexander Hayes
-Customer ID: 3309161
+Customer Name: James Mehta
+Customer ID: 1381509
 Policy Type: Auto
 Effective Date: 2024-04-01
 Expiration Date: 2025-04-01
@@ -417,12 +417,12 @@ Coverage Details:
 Underwriting Notes:
 Vehicle: 2021 BMW 3 Series (leased). Gap coverage required by lessor. Clean driving record. Urban area surcharge applied.'),
 
-(20, 2120504, 'Policy Summary', 'policy_summary_POL-00315.txt',
+(20, 1312971, 'Policy Summary', 'policy_summary_POL-00315.txt',
 'INSURANCE POLICY SUMMARY
 =========================
 Policy Number: POL-00315
-Customer Name: Henry Kobayashi
-Customer ID: 2120504
+Customer Name: Emma Nash
+Customer ID: 1312971
 Policy Type: Home
 Effective Date: 2024-05-01
 Expiration Date: 2025-05-01
