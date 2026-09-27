@@ -5,7 +5,11 @@ from utils import apply_theme, theme_sidebar, render_df
 st.set_page_config(page_title="Customer 360", page_icon="🏠", layout="wide")
 apply_theme()
 
-session = get_active_session()
+try:
+    session = get_active_session()
+except Exception as e:
+    st.error(f"Could not connect to Snowflake: {e}")
+    st.stop()
 
 with st.sidebar:
     theme_sidebar()
