@@ -28,6 +28,7 @@ st.title("Operations Dashboard")
 st.caption("Pipeline health, record counts, and refresh status across all layers")
 
 if st.button("Refresh Data", type="primary"):
+    st.cache_data.clear()
     st.experimental_rerun()
 st.caption(f"Loaded at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 st.markdown("---")
@@ -120,20 +121,7 @@ try:
     else:
         dt = pd.DataFrame(records).sort_values(['LAYER', 'TABLE'])
 
-        def style_refresh(v):
-            v = str(v).upper()
-            if v == 'INCREMENTAL': return 'background-color:#C8E6C9;color:#1B5E20;font-weight:bold'
-            if v == 'FULL':        return 'background-color:#FFE0B2;color:#E65100'
-            return ''
-
-        def style_state(v):
-            v = str(v).upper()
-            if v in ('ACTIVE', 'RUNNING'): return 'background-color:#C8E6C9;color:#1B5E20'
-            if v == 'SUSPENDED':           return 'background-color:#FFCDD2;color:#B71C1C'
-            return ''
-
-        styled = dt
-        render_df(styled)
+        render_df(dt)
 
         mc = dt['REFRESH_MODE'].str.upper().value_counts()
         c1, c2, c3 = st.columns(3)
@@ -182,12 +170,6 @@ else:
     k3.metric("Failed", fail, delta=f"-{fail}" if fail else None, delta_color="inverse")
     k4.metric("Avg Duration", f"{avg_d:.0f}s" if pd.notna(avg_d) else "—")
 
-    def style_task_state(v):
-        if str(v) == 'SUCCEEDED': return 'background-color:#C8E6C9;color:#1B5E20;font-weight:bold'
-        if str(v) == 'FAILED':    return 'background-color:#FFCDD2;color:#B71C1C;font-weight:bold'
-        if str(v) == 'RUNNING':   return 'background-color:#E3F2FD;color:#0D47A1'
-        return ''
-
     render_df(task_hist)
 
 st.markdown("---")
@@ -216,12 +198,6 @@ dt_hist = safe_sql("""
 if dt_hist.empty:
     st.info("No refresh history in the last 24 hours yet.")
 else:
-    def style_dt_state(v):
-        if str(v) == 'SUCCEEDED': return 'background-color:#C8E6C9;color:#1B5E20'
-        if str(v) == 'FAILED':    return 'background-color:#FFCDD2;color:#B71C1C;font-weight:bold'
-        if str(v) == 'RUNNING':   return 'background-color:#E3F2FD;color:#0D47A1'
-        return ''
-
     render_df(dt_hist)
 
 st.sidebar.markdown("---")

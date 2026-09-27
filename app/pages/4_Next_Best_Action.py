@@ -1,6 +1,10 @@
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
-import plotly.graph_objects as go
+try:
+    import plotly.graph_objects as go
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
 from utils import apply_theme, theme_sidebar, render_df
 
 st.set_page_config(page_title="Next Best Action", page_icon="🎯", layout="wide")
@@ -13,6 +17,7 @@ except Exception as e:
     st.stop()
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def safe_sql(query, error_label="data"):
     try:
         return session.sql(query).to_pandas()
@@ -22,6 +27,9 @@ def safe_sql(query, error_label="data"):
 
 
 def _hbar(df, x_col, y_col):
+    if not HAS_PLOTLY:
+        st.bar_chart(df.set_index(y_col)[x_col])
+        return
     dark = st.session_state.get("dark_mode", False)
     bg   = "#1c1e2e" if dark else "#FFFFFF"
     text = "#FAFAFA" if dark else "#1A237E"
@@ -152,3 +160,6 @@ if actions is not None:
             return "color:#66BB6A"
         except: return ""
     render_df(actions, col_styles={"PRIORITY": _pri_style, "CHURN_RISK": _risk_style})
+    if not actions.empty:
+        csv = actions.to_csv(index=False)
+        st.download_button("Download CSV", csv, "action_queue.csv", "text/csv", key="dl_action_queue")

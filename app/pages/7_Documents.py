@@ -1,13 +1,18 @@
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
+from utils import apply_theme, theme_sidebar, render_df
 
 st.set_page_config(page_title="Document AI", layout="wide")
+apply_theme()
 
 try:
     session = get_active_session()
 except Exception as e:
     st.error(f"Could not connect to Snowflake: {e}")
     st.stop()
+
+with st.sidebar:
+    theme_sidebar()
 
 st.title("Document Intelligence")
 st.caption("AI-powered structured extraction from insurance claim forms and policy documents using Cortex AI (llama3.1-8b)")
@@ -76,7 +81,10 @@ try:
             FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED
             ORDER BY FILE_NAME
         """)
-    st.dataframe(extracted, use_container_width=True)
+    render_df(extracted)
+    if not extracted.empty:
+        csv = extracted.to_csv(index=False)
+        st.download_button("Download CSV", csv, "extracted_documents.csv", "text/csv", key="dl_extracted_docs")
 except Exception as e:
     st.error(f"Could not load extracted data: {e}")
 
@@ -130,7 +138,7 @@ try:
             ON d.SOURCE_CUSTOMER_ID = cr.CUSTOMER_ID
         ORDER BY d.FILE_NAME
     """)
-    st.dataframe(xref, use_container_width=True)
+    render_df(xref)
 
     matched = xref["C360_NAME"].notna().sum()
     total = len(xref)
