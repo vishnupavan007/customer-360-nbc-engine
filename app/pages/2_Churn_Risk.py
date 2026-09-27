@@ -25,8 +25,12 @@ st.markdown("""
 st.title("Churn Risk Dashboard")
 st.caption("AI-predicted churn risk analysis across customer segments")
 
+@st.cache_data(ttl=300, show_spinner=False)
+def run_query(query):
+    return session.sql(query).to_pandas()
+
 try:
-    seg_df = session.sql("SELECT DISTINCT CUSTOMER_SEGMENT FROM CUSTOMER_360.AI.DT_CHURN_RISK ORDER BY 1").to_pandas()
+    seg_df = run_query("SELECT DISTINCT CUSTOMER_SEGMENT FROM CUSTOMER_360.AI.DT_CHURN_RISK ORDER BY 1")
     all_segments = seg_df["CUSTOMER_SEGMENT"].tolist()
 except Exception as e:
     st.error(f"Could not load segments: {e}")
@@ -49,6 +53,7 @@ if not safe_selected:
     st.warning("No valid segments selected.")
     st.stop()
 
+# safe_selected is validated against valid_segments (DB-sourced allowlist) — no injection risk
 seg_placeholders = ", ".join([f"'{s}'" for s in safe_selected])
 risk_min_val = float(risk_min)
 
@@ -97,11 +102,8 @@ with left:
         GROUP BY 1 ORDER BY 1 DESC
     """, "risk distribution")
     if dist is not None:
-        bucket_colors = {
-            "5-Critical": "#B71C1C", "4-High": "#E65100",
-            "3-Medium": "#F9A825", "2-Low": "#43A047", "1-Minimal": "#1B5E20",
-        }
         st.bar_chart(dist.set_index("BUCKET")["CUSTOMERS"])
+        st.caption("Distribution of churn risk scores across all assessed customers")
 
 with right:
     st.subheader("Avg Risk by Segment")
@@ -142,3 +144,6 @@ if detail is not None:
                 "High":"color:#FFA726","Medium":"color:#FFEE58",
                 "Low":"color:#66BB6A"}.get(str(v),"")
     render_df(detail, col_styles={"CHURN_RISK": _risk_s, "RETENTION_URGENCY": _urg_s})
+    if not detail.empty:
+        csv = detail.to_csv(index=False)
+        st.download_button("Download CSV", csv, "high_risk_customers.csv", "text/csv", key="dl_churn_risk")
