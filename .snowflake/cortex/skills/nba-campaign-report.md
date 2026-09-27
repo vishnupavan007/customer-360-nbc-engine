@@ -14,7 +14,7 @@ Build a ranked, actionable campaign list from the Next Best Action pipeline so s
 1. If no filter was specified, default to **HIGH priority** actions across all segments.
 
 2. Ask which filter to apply if the user wants to narrow down:
-   - **Segment**: Premium, Standard, Basic, or Enterprise
+   - **Segment**: Premium, Standard, Basic, or VIP
    - **Action type**: Retention_Offer, Policy_Review, Claims_Followup, Upsell, Payment_Assistance, Proactive_Outreach, Renewal_Reminder, Complaint_Resolution
    - **Priority**: High, Medium, or Low
 
@@ -24,11 +24,11 @@ Build a ranked, actionable campaign list from the Next Best Action pipeline so s
 SELECT
     n.CUSTOMER_ID,
     c.FULL_NAME,
-    c.SEGMENT,
+    c.CUSTOMER_SEGMENT,
     c.COUNTRY,
     n.ACTION_TYPE,
     n.ACTION_DESCRIPTION,
-    n.CHANNEL,
+    n.RECOMMENDED_CHANNEL,
     n.PRIORITY,
     n.RATIONALE,
     r.CHURN_RISK_SCORE
