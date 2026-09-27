@@ -30,22 +30,22 @@ st.title("Customer 360 — Next Best Action Engine")
 st.caption("Unified insurance and lending customer intelligence powered by Snowflake Cortex AI")
 
 with st.spinner("Loading dashboard..."):
-  col1, col2, col3, col4, col5 = st.columns(5)
-  with col1:
-    st.metric("Total Customers",
-              f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED'):,}")
-  with col2:
-    st.metric("Active Customers",
-              f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED WHERE IS_ACTIVE = TRUE'):,}")
-  with col3:
-    st.metric("High Churn Risk",
-              f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_CHURN_RISK WHERE CHURN_RISK_SCORE >= 0.7'):,}")
-  with col4:
-    q = "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_NEXT_BEST_ACTION WHERE PRIORITY = 'High'"
-    st.metric("High Priority Actions", f"{safe_metric(q):,}")
-  with col5:
-    st.metric("Documents Processed",
-              f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED'):,}")
+    col1, col2, col3, col4, col5 = st.columns(5)
+    with col1:
+        st.metric("Total Customers",
+                  f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED'):,}")
+    with col2:
+        st.metric("Active Customers",
+                  f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.CURATED.CUSTOMER_360_UNIFIED WHERE IS_ACTIVE = TRUE'):,}")
+    with col3:
+        st.metric("High Churn Risk",
+                  f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_CHURN_RISK WHERE CHURN_RISK_SCORE >= 0.7'):,}")
+    with col4:
+        q = "SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_NEXT_BEST_ACTION WHERE PRIORITY = 'High'"
+        st.metric("High Priority Actions", f"{safe_metric(q):,}")
+    with col5:
+        st.metric("Documents Processed",
+                  f"{safe_metric('SELECT COUNT(*) AS CNT FROM CUSTOMER_360.AI.DT_DOCUMENT_EXTRACTED'):,}")
 
 st.markdown("---")
 
