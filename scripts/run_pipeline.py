@@ -35,13 +35,19 @@ SQL_FILES = [
     ("infrastructure/00_setup.sql",                    "Infrastructure: schemas and warehouse"),
     ("pipeline/schema/01_raw_tables.sql",               "Pipeline: raw table DDL"),
     ("pipeline/data/02_synthetic_data.sql",             "Pipeline: synthetic data generation"),
+    ("pipeline/data/02b_additional_10k_data.sql",       "Pipeline: additional 10K+ rows with edge cases"),
+    ("pipeline/data/02c_transcripts_fix.sql",           "Pipeline: additional call transcripts"),
+    ("pipeline/data/02d_synthetic_documents.sql",       "Pipeline: synthetic insurance documents"),
     ("pipeline/clean/03_clean_dynamic_tables.sql",      "Pipeline: CLEAN dynamic tables"),
     ("pipeline/curated/04_curated_dynamic_tables.sql",  "Pipeline: CURATED unified view"),
     ("pipeline/ai/05_ai_enrichment.sql",                "Pipeline: AI enrichment + Cortex Search"),
+    ("pipeline/documents/12_document_processing.sql",   "Pipeline: document AI extraction"),
     ("serving/semantic_model/06_semantic_model.sql",    "Serving: semantic view creation"),
     ("serving/agent/07_cortex_agent.sql",               "Serving: Cortex Agent documentation"),
     ("ops/08_tasks_and_monitoring.sql",                 "Ops: scheduled quality monitoring tasks"),
     ("ops/09_validation.sql",                           "Ops: end-to-end validation queries"),
+    ("ops/10_daily_raw_pipeline.sql",                   "Ops: daily synthetic data pipeline"),
+    ("ops/11_app_test_suite.sql",                       "Ops: SQL test suite (33 tests)"),
 ]
 
 
