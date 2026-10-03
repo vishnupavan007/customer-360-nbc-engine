@@ -212,7 +212,7 @@ def theme_sidebar():
     prev = st.session_state.get("dark_mode", False)
     icon  = "☀️" if prev else "🌙"
     label = f"{icon} {'Light Mode' if prev else 'Dark Mode'}"
-    new   = st.toggle(label, value=prev, key="_global_theme")
+    new   = st.checkbox(label, value=prev, key="_global_theme")
     if new != prev:
         st.session_state.dark_mode = new
-        st.rerun()
+        st.experimental_rerun()
