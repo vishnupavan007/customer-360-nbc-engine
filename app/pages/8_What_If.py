@@ -90,9 +90,11 @@ if search:
 
                 prompt = (
                     f"You are a customer risk analyst. Given this MODIFIED customer profile, "
-                    f"predict the new churn risk score (0.0 to 1.0). Return ONLY a JSON object with: "
-                    f"predicted_churn_risk (float), risk_change (string: 'decreased', 'increased', or 'unchanged'), "
-                    f"explanation (1-2 sentences why). "
+                    f"predict the new churn risk score (0.0 to 1.0). "
+                    f"Return ONLY a valid JSON object using double quotes for all keys and string values. "
+                    f"Keys: predicted_churn_risk (float), risk_change (one of: decreased, increased, unchanged), "
+                    f"explanation (1-2 sentences why). Example: {{\"predicted_churn_risk\": 0.45, \"risk_change\": \"decreased\", \"explanation\": \"reason\"}}. "
+                    f"Do not use single quotes. Do not include any text outside the JSON object. "
                     f"ORIGINAL: churn_risk={row['CURRENT_CHURN_RISK']:.2f}, "
                     f"segment={row['CUSTOMER_SEGMENT']}, "
                     f"premium=${row['TOTAL_PREMIUM']:.0f}, "
@@ -115,29 +117,40 @@ if search:
                             SELECT SNOWFLAKE.CORTEX.COMPLETE('llama3.1-8b', '{safe_prompt}') AS PREDICTION
                         """).collect()
 
-                        import json, re
+                        import json, re, ast
                         raw = result[0]["PREDICTION"] if result else ""
                         match = re.search(r'\{[\s\S]*\}', raw)
                         if match:
-                            pred = json.loads(match.group())
-                            new_risk = float(pred.get("predicted_churn_risk", row["CURRENT_CHURN_RISK"]))
-                            change = pred.get("risk_change", "unchanged")
-                            explanation = pred.get("explanation", "")
+                            json_str = match.group()
+                            try:
+                                pred = json.loads(json_str)
+                            except json.JSONDecodeError:
+                                # LLM returned single-quoted Python dict — fall back to ast
+                                try:
+                                    pred = ast.literal_eval(json_str)
+                                except Exception:
+                                    st.warning("Could not parse AI prediction. Raw response:")
+                                    st.text(raw[:500])
+                                    pred = None
+                            if pred is not None:
+                                new_risk = float(pred.get("predicted_churn_risk", row["CURRENT_CHURN_RISK"]))
+                                change = pred.get("risk_change", "unchanged")
+                                explanation = pred.get("explanation", "")
 
-                            delta = new_risk - float(row["CURRENT_CHURN_RISK"])
-                            delta_pct = delta * 100
+                                delta = new_risk - float(row["CURRENT_CHURN_RISK"])
+                                delta_pct = delta * 100
 
-                            st.markdown("### Prediction Results")
-                            r1, r2, r3 = st.columns(3)
-                            r1.metric("Predicted Churn Risk", f"{new_risk:.2f}",
-                                     delta=f"{delta_pct:+.1f}%",
-                                     delta_color="inverse")
-                            r2.metric("Risk Change", change.title())
-                            r3.metric("Current → Predicted",
-                                     f"{row['CURRENT_CHURN_RISK']:.2f} → {new_risk:.2f}")
+                                st.markdown("### Prediction Results")
+                                r1, r2, r3 = st.columns(3)
+                                r1.metric("Predicted Churn Risk", f"{new_risk:.2f}",
+                                         delta=f"{delta_pct:+.1f}%",
+                                         delta_color="inverse")
+                                r2.metric("Risk Change", change.title())
+                                r3.metric("Current → Predicted",
+                                         f"{row['CURRENT_CHURN_RISK']:.2f} → {new_risk:.2f}")
 
-                            if explanation:
-                                st.info(f"**AI Analysis:** {explanation}")
+                                if explanation:
+                                    st.info(f"**AI Analysis:** {explanation}")
                         else:
                             st.warning("Could not parse AI prediction. Raw response:")
                             st.text(raw[:500])
