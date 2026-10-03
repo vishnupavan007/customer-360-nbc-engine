@@ -315,7 +315,7 @@ with st.sidebar:
         st.session_state.dataframes = {}
         st.session_state.msg_source = {}
         st.session_state.last_route = ""
-        st.rerun()
+        st.experimental_rerun()
     st.divider()
     st.markdown("**Quick examples**")
     for q in [
@@ -327,7 +327,7 @@ with st.sidebar:
     ]:
         if st.button(q, key=q, use_container_width=True):
             st.session_state.messages.append({"role":"user","content":q})
-            st.rerun()
+            st.experimental_rerun()
 
 
 # ── Header ────────────────────────────────────────────────────────────────────
@@ -356,7 +356,7 @@ col_status, col_toggle = st.columns([3, 1])
 with col_status:
     st.markdown(f'<div class="status-bar">ℹ️ &nbsp;{route_msg}</div>', unsafe_allow_html=True)
 with col_toggle:
-    st.session_state.use_live = st.toggle("Use Live Snowflake Data", value=st.session_state.use_live)
+    st.session_state.use_live = st.checkbox("Use Live Snowflake Data", value=st.session_state.use_live)
 
 # ── Chat messages ─────────────────────────────────────────────────────────────
 empty_color = "#607D8B" if _dark else "#90A4AE"
@@ -428,7 +428,7 @@ for col, (icon, text) in zip(cols, CHIPS):
     with col:
         if st.button(f"{icon}  {text}", use_container_width=True, key=f"chip_{text}"):
             st.session_state.messages.append({"role":"user","content":text})
-            st.rerun()
+            st.experimental_rerun()
 
 # ── Generate response ─────────────────────────────────────────────────────────
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
@@ -439,7 +439,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         st.session_state.messages.append({"role":"assistant","content":_REFUSE})
         st.session_state.msg_source[out_idx] = "guard"
         st.session_state.last_route          = "guard"
-        st.rerun()
+        st.experimental_rerun()
 
     # Fast path: known SQL patterns bypass the agent (~1s)
     if _is_sql_fast(last_q):
@@ -451,7 +451,7 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         st.session_state.last_route          = src
         if df is not None:
             st.session_state.dataframes[out_idx] = df
-        st.rerun()
+        st.experimental_rerun()
 
     # Slow path: try Cortex Agent (20s), fall back to SQL on failure
     with st.spinner("Asking Cortex Agent..."):
@@ -474,4 +474,4 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
         if df is not None:
             st.session_state.dataframes[out_idx] = df
 
-    st.rerun()
+    st.experimental_rerun()

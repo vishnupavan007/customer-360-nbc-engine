@@ -145,6 +145,4 @@ if detail is not None:
                 "High":"color:#FFA726","Medium":"color:#FFEE58",
                 "Low":"color:#66BB6A"}.get(str(v),"")
     render_df(detail, col_styles={"CHURN_RISK": _risk_s, "RETENTION_URGENCY": _urg_s})
-    if not detail.empty:
-        csv = detail.to_csv(index=False)
-        st.download_button("Download CSV", csv, "high_risk_customers.csv", "text/csv", key="dl_churn_risk")
+

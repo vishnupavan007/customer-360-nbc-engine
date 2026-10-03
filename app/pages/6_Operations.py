@@ -30,7 +30,7 @@ col_refresh, col_ts = st.columns([1, 5])
 with col_refresh:
     if st.button("Refresh Data", type="primary"):
         st.cache_data.clear()
-        st.rerun()
+        st.experimental_rerun()
 with col_ts:
     st.caption(f"Loaded at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
@@ -47,18 +47,17 @@ def safe_sql(query, error_label="data"):
 
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 Pipeline Health",
-    "🔗 Data Lineage",
-    "🛡️ Governance",
-    "🤖 AI Quality",
-    "🔔 Alerts",
-])
+selected_tab = st.radio(
+    "Section",
+    ["📊 Pipeline Health", "🔗 Data Lineage", "🛡️ Governance", "🤖 AI Quality", "🔔 Alerts"],
+    horizontal=True,
+    label_visibility="collapsed",
+)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — Pipeline Health
 # ═══════════════════════════════════════════════════════════════════════════════
-with tab1:
+if selected_tab == "📊 Pipeline Health":
     # ── Section 1: Layer record counts ────────────────────────────────────────
     st.markdown('<div class="layer-header">Record Counts by Layer</div>', unsafe_allow_html=True)
     st.markdown("")
@@ -218,7 +217,7 @@ with tab1:
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — Data Lineage
 # ═══════════════════════════════════════════════════════════════════════════════
-with tab2:
+elif selected_tab == "🔗 Data Lineage":
     st.subheader("Pipeline Architecture")
     st.caption("End-to-end data flow: RAW → CLEAN → CURATED → AI → APP")
     st.markdown("""
@@ -274,7 +273,7 @@ with tab2:
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 3 — Governance
 # ═══════════════════════════════════════════════════════════════════════════════
-with tab3:
+elif selected_tab == "🛡️ Governance":
     st.subheader("Governance Coverage")
 
     # ── Masking Policies ────────────────────────────────────────────────────
@@ -358,7 +357,7 @@ with tab3:
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 4 — AI Quality
 # ═══════════════════════════════════════════════════════════════════════════════
-with tab4:
+elif selected_tab == "🤖 AI Quality":
     st.subheader("AI Model Quality Dashboard")
     st.caption("Parse success rates and null scores from all AI dynamic tables")
 
@@ -387,7 +386,7 @@ with tab4:
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 5 — Alerts
 # ═══════════════════════════════════════════════════════════════════════════════
-with tab5:
+elif selected_tab == "🔔 Alerts":
     st.subheader("Configured Alerts")
     st.caption("Proactive alerts scheduled on Snowflake — email triggered on condition breach")
 

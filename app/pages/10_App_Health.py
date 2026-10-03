@@ -333,13 +333,7 @@ if st.session_state.probe_results:
     df_out = pd.DataFrame(results)[["page", "probe", "status", "rows", "elapsed_ms", "error"]]
     df_out.columns = ["Page", "Probe", "Status", "Rows", "ms", "Error"]
     st.dataframe(df_out, use_container_width=True)
-    csv_data = df_out.to_csv(index=False)
-    st.download_button(
-        label="Download CSV",
-        data=csv_data,
-        file_name="app_health.csv",
-        mime="text/csv",
-    )
+
 
 else:
     st.info(
