@@ -72,11 +72,15 @@ if search:
                     "Schedule proactive outreach", key=f"outreach_{cid}"
                 )
             with col_r:
-                reduce_past_due = st.slider(
-                    "Reduce days past due to", 0, int(max(row["MAX_DAYS_PAST_DUE"], 0)),
-                    int(max(row["MAX_DAYS_PAST_DUE"], 0)), key=f"dpd_{cid}",
-                    help="Simulate resolving payment delays"
-                )
+                current_dpd = int(max(row["MAX_DAYS_PAST_DUE"], 0))
+                if current_dpd > 0:
+                    reduce_past_due = st.slider(
+                        "Reduce days past due to", 0, current_dpd, current_dpd,
+                        key=f"dpd_{cid}", help="Simulate resolving payment delays"
+                    )
+                else:
+                    reduce_past_due = 0
+                    st.caption("Days past due: 0 (no overdue payments)")
                 resolve_complaints = st.checkbox(
                     "Resolve all complaints", key=f"comp_{cid}"
                 )
