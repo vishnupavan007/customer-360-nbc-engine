@@ -4,6 +4,19 @@ AI-powered unified customer intelligence platform for insurance and lending, bui
 
 ---
 
+## 🏆 Hackathon Evaluation & Live Demo Access
+
+Judges and evaluators can access the live running Streamlit-in-Snowflake application and Cortex AI features using the following credentials:
+
+- **Live Streamlit App URL:** [CUSTOMER_360_APP](https://app.snowflake.com/streamlit/kiygovj/yl29401/#/apps/CUSTOMER_360.APP.CUSTOMER_360_APP/AI_Advisor)
+- **Account Identifier:** `kiygovj-yl29401`
+- **Username:** `HACKATHON_JUDGE`
+- **Password:** `JudgeDemo2026!`
+- **Role:** `PUBLIC` (All app, database, and warehouse permissions pre-granted)
+- **Warehouse:** `COMPUTE_WH`
+
+---
+
 ## Overview
 
 Insurers and lenders struggle to act on fragmented customer data spread across policies, claims, loans, emails, and call transcripts. This solution unifies all structured and unstructured touchpoints into a single Customer 360 view and uses Snowflake Cortex AI to automatically score churn risk, analyse call sentiment, extract structured data from documents, and recommend the next best action for every customer — all accessible through a conversational Streamlit application.
